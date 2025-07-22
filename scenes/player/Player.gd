@@ -4,7 +4,7 @@ const SPEED = 200.0
 const DASH_SPEED = 600.0
 const FAST_DASH_SPEED = 800.0
 const SLOW_DASH_SPEED = 400.0
-const DASH_DURATION = 0.5
+const DASH_DURATION = 0.3
 const FAST_DASH_DURATION = 0.3
 const SLOW_DASH_DURATION = 0.8
 const DASH_COOLDOWN = 1.0
@@ -12,15 +12,43 @@ const DASH_COOLDOWN = 1.0
 # Roll animation has 14 frames - we'll calculate speed to match dash duration
 const ROLL_ANIMATION_FRAMES = 14
 
+# Smooth collision settings
+const WALL_SLIDE_THRESHOLD = 0.1
+
 var is_dashing = false
 var dash_timer = 0.0
 var dash_cooldown_timer = 0.0
 var dash_direction = Vector2.ZERO
 var last_direction = Vector2.RIGHT # Default facing direction
 var current_dash_speed = DASH_SPEED
+var animation_just_changed = false
+var roll_end_transition = false
+
+# Sprite offset compensation for different animation centers
+var animation_offsets = {
+	"idle": Vector2.ZERO,
+	"run": Vector2.ZERO,
+	"roll": Vector2(8, 0) # Roll sprites are slightly offset
+}
+var current_offset = Vector2.ZERO
+var target_offset = Vector2.ZERO
 
 @onready var animated_sprite = $AnimatedSprite2D
 
+func _ready():
+	# Configure smooth wall sliding
+	wall_min_slide_angle = 0.0 # Allow sliding at any angle
+	floor_stop_on_slope = false
+	floor_constant_speed = true
+	floor_snap_length = 0
+	
+	# Connect animation finished signal for smooth transitions
+	animated_sprite.animation_finished.connect(_on_animation_finished)
+	
+	# Initialize sprite offset system
+	current_offset = animation_offsets.get(animated_sprite.animation, Vector2.ZERO)
+	target_offset = current_offset
+	
 func _physics_process(delta):
 	# Update timers
 	if dash_timer > 0:
@@ -31,6 +59,9 @@ func _physics_process(delta):
 	# Check if dash has ended
 	if is_dashing and dash_timer <= 0:
 		is_dashing = false
+		# Mark for smooth transition from roll to next animation
+		if animated_sprite.animation == "roll":
+			roll_end_transition = true
 	
 	# Get input direction
 	var direction = Vector2()
@@ -71,11 +102,55 @@ func _physics_process(delta):
 		else:
 			velocity = Vector2.ZERO
 	
-	# Move the player
+	# Move the player with smooth wall sliding
 	move_and_slide()
+	
+	# Apply smooth collision correction for small overlaps
+	smooth_wall_collision(direction)
 	
 	# Update animations
 	update_animation(direction)
+	
+	# Smooth sprite offset interpolation
+	update_sprite_offset(delta)
+
+func smooth_wall_collision(input_direction: Vector2):
+	# Handle small collision overlaps by applying gentle sliding force
+	if get_slide_collision_count() > 0:
+		for i in get_slide_collision_count():
+			var collision = get_slide_collision(i)
+			var collision_normal = collision.get_normal()
+			
+			# If we're trying to move into a wall but only slightly overlapping
+			if input_direction.length() > 0:
+				var dot_product = input_direction.normalized().dot(-collision_normal)
+				
+				# If we're moving roughly towards the wall (small angle)
+				if dot_product > WALL_SLIDE_THRESHOLD:
+					# Calculate slide direction along the wall
+					var slide_direction = input_direction.slide(collision_normal)
+					
+					# Apply a small sliding force to help glide along walls
+					if slide_direction.length() > 0:
+						var slide_force = slide_direction.normalized() * 50 * get_physics_process_delta_time()
+						position += slide_force
+
+func update_sprite_offset(delta: float):
+	# Smooth interpolation between sprite offsets to prevent snapping
+	var lerp_speed = 15.0 # How fast to transition between offsets
+	
+	# Get target offset for current animation
+	var animation_name = animated_sprite.animation
+	if animation_name in animation_offsets:
+		target_offset = animation_offsets[animation_name]
+	else:
+		target_offset = Vector2.ZERO
+	
+	# Smoothly interpolate to target offset
+	current_offset = current_offset.lerp(target_offset, lerp_speed * delta)
+	
+	# Apply the offset to the sprite
+	animated_sprite.position = current_offset
 
 func update_animation(direction: Vector2):
 	# Handle sprite direction (flip when moving left)
@@ -84,28 +159,58 @@ func update_animation(direction: Vector2):
 	elif direction.x < 0:
 		animated_sprite.flip_h = true
 	
+	# Handle roll ending transition
+	if roll_end_transition and not is_dashing:
+		roll_end_transition = false
+		# Force transition to appropriate animation
+		if direction.length() > 0:
+			animated_sprite.speed_scale = 1.0
+			animated_sprite.play("run")
+		else:
+			animated_sprite.speed_scale = 1.0
+			animated_sprite.play("idle")
+		return
+	
 	# Play appropriate animation
 	if is_dashing:
 		if animated_sprite.animation != "roll":
-			# Calculate animation speed to match dash duration
-			var roll_speed = ROLL_ANIMATION_FRAMES / dash_timer
-			animated_sprite.speed_scale = roll_speed / 12.0 # 12.0 is the base speed in the scene
+			# Calculate precise animation speed to match dash duration exactly
+			var precise_roll_speed = ROLL_ANIMATION_FRAMES / dash_timer
+			animated_sprite.speed_scale = precise_roll_speed / 9.0 # 9.0 is the base speed in scene
 			animated_sprite.play("roll")
+			animation_just_changed = true
+		# If roll animation finished but dash is still active, hold last frame
+		elif not animated_sprite.is_playing():
+			animated_sprite.frame = animated_sprite.sprite_frames.get_frame_count("roll") - 1
 	elif direction.length() > 0:
 		# Reset speed scale for normal animations
 		animated_sprite.speed_scale = 1.0
 		if animated_sprite.animation != "run":
 			animated_sprite.play("run")
+			animation_just_changed = true
 	else:
 		# Reset speed scale for normal animations
 		animated_sprite.speed_scale = 1.0
 		if animated_sprite.animation != "idle":
 			animated_sprite.play("idle")
+			animation_just_changed = true
+
+func _on_animation_finished():
+	# Handle smooth transitions when animations complete
+	if animated_sprite.animation == "roll":
+		# If dash is still active, hold on the last frame
+		if is_dashing:
+			animated_sprite.frame = animated_sprite.sprite_frames.get_frame_count("roll") - 1
+		else:
+			# Dash is done, prepare for clean transition
+			roll_end_transition = true
+			# Sprite position is now handled by offset system, no manual reset needed
 
 func start_dash(input_direction: Vector2, speed: float = DASH_SPEED, duration: float = DASH_DURATION):
 	is_dashing = true
 	dash_timer = duration
 	dash_cooldown_timer = DASH_COOLDOWN
+	roll_end_transition = false # Reset transition flag
 	
 	# Use input direction if moving, otherwise use last direction
 	if input_direction.length() > 0:

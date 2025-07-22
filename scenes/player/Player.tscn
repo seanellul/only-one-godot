@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3 uid="uid://b4k8qyxkqjn8k"]
+[gd_scene load_steps=38 format=3 uid="uid://b4k8qyxkqjn8k"]
 
 [ext_resource type="Script" path="res://scenes/player/Player.gd" id="1_1x5k7"]
 [ext_resource type="Texture2D" uid="uid://usbs6n0ct2ar" path="res://scenes/sprites/knight/noBKG_KnightIdle_strip.png" id="2_idle"]
@@ -96,10 +96,6 @@ region = Rect2(1344, 0, 96, 64)
 [sub_resource type="AtlasTexture" id="AtlasTexture_2y7ut"]
 atlas = ExtResource("4_roll")
 region = Rect2(1536, 0, 96, 64)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_farkw"]
-atlas = ExtResource("4_roll")
-region = Rect2(1728, 0, 96, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_sh5hn"]
 atlas = ExtResource("3_run")
@@ -209,11 +205,8 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_2y7ut")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_farkw")
 }],
-"loop": true,
+"loop": false,
 "name": &"roll",
 "speed": 9.0
 }, {
@@ -248,19 +241,21 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1hnxe"]
-size = Vector2(16, 18)
+size = Vector2(14, 9)
 
 [node name="Player" type="CharacterBody2D"]
 script = ExtResource("1_1x5k7")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_knight")
-animation = &"run"
+animation = &"roll"
 autoplay = "idle"
-frame_progress = 0.155595
+frame = 7
+frame_progress = 1.0
+speed_scale = 3.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 15)
+position = Vector2(0, 7.5)
 shape = SubResource("RectangleShape2D_1hnxe")
 
 [node name="Camera2D" type="Camera2D" parent="."]
