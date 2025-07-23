@@ -1,0 +1,83 @@
+[gd_scene load_steps=2 format=3 uid="uid://e56x5puewshn"]
+
+[ext_resource type="Script" path="res://scenes/ui/InventoryUI.gd" id="1_inventory_ui"]
+
+[node name="InventoryUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_inventory_ui")
+
+[node name="InventoryPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -280.0
+offset_right = 400.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="InventoryPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="InventoryPanel/VBoxContainer"]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MainHSplit" type="HSplitContainer" parent="InventoryPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+split_offset = 50
+
+[node name="LeftPanel" type="VBoxContainer" parent="InventoryPanel/VBoxContainer/MainHSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="InventoryHeader" type="Label" parent="InventoryPanel/VBoxContainer/MainHSplit/LeftPanel"]
+layout_mode = 2
+text = "📦 INVENTORY"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="InventoryPanel/VBoxContainer/MainHSplit/LeftPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ItemGrid" type="VBoxContainer" parent="InventoryPanel/VBoxContainer/MainHSplit/LeftPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightPanel" type="VBoxContainer" parent="InventoryPanel/VBoxContainer/MainHSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StatsLabel" type="Label" parent="InventoryPanel/VBoxContainer/MainHSplit/RightPanel"]
+layout_mode = 2
+text = "=== CHARACTER STATS ===
+This will be replaced by custom panel"
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="InventoryPanel/VBoxContainer"]
+layout_mode = 2
+text = "Close Inventory (E)"

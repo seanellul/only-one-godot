@@ -17,10 +17,12 @@ enum TileType {
 	ITEM # Yellow - items of interest
 }
 
-# Color mapping
+# Grass textures for variety
+var grass_textures = []
+
+# Color mapping for non-grass tiles
 var tile_colors = {
 	TileType.EMPTY: Color(0.1, 0.1, 0.1, 1), # Dark grey
-	TileType.FLOOR: Color(0.2, 0.6, 0.2, 1), # Green
 	TileType.PATH: Color(0.5, 0.5, 0.5, 1), # Grey
 	TileType.WALL: Color(0, 0, 0, 1), # Black
 	TileType.ITEM: Color(1, 1, 0, 1) # Yellow
@@ -50,7 +52,28 @@ class Room:
 
 func _ready():
 	rng.randomize()
+	load_grass_textures()
 	generate_world()
+
+func load_grass_textures():
+	# Load the 4 grass texture variants
+	var grass_paths = [
+		"res://tiles/grass_0.png",
+		"res://tiles/grass_1.png",
+		"res://tiles/grass_2.png",
+		"res://tiles/grass_3.png"
+	]
+	
+	for path in grass_paths:
+		var texture = load(path)
+		if texture:
+			grass_textures.append(texture)
+			print("Loaded grass texture: ", path)
+		else:
+			print("Failed to load grass texture: ", path)
+	
+	if grass_textures.size() == 0:
+		print("Warning: No grass textures loaded, falling back to solid color")
 
 func generate_world():
 	print("Generating world...")
@@ -188,7 +211,8 @@ func place_items():
 				var item_y = rng.randi_range(room.y + 1, room.y + room.height - 2)
 				
 				if world_grid[item_y][item_x] == TileType.FLOOR:
-					world_grid[item_y][item_x] = TileType.ITEM
+					# Create actual collectible item instead of tile
+					create_collectible_item(item_x, item_y)
 					break
 
 func is_valid_position(x: int, y: int) -> bool:
@@ -207,6 +231,12 @@ func render_world():
 				create_tile(x, y, tile_type)
 
 func create_tile(x: int, y: int, tile_type: TileType):
+	# Handle grass tiles with texture sprites
+	if tile_type == TileType.FLOOR:
+		create_grass_tile(x, y)
+		return
+	
+	# Handle other tiles with ColorRect (walls, paths, etc.)
 	var tile = ColorRect.new()
 	tile.size = Vector2(TILE_SIZE, TILE_SIZE)
 	tile.color = tile_colors[tile_type]
@@ -232,6 +262,115 @@ func create_tile(x: int, y: int, tile_type: TileType):
 	else:
 		tile.position = Vector2(x * TILE_SIZE, y * TILE_SIZE)
 		add_child(tile)
+
+func create_grass_tile(x: int, y: int):
+	# Use the base grass texture with subtle hue variations
+	var sprite = Sprite2D.new()
+	
+	# Always use the base grass texture (grass_0) for consistency
+	if grass_textures.size() > 0:
+		sprite.texture = grass_textures[0] # Always use grass_0
+	else:
+		# Fallback to colored rect if textures failed to load
+		var fallback_tile = ColorRect.new()
+		fallback_tile.size = Vector2(TILE_SIZE, TILE_SIZE)
+		fallback_tile.color = Color(0.2, 0.6, 0.2, 1)
+		fallback_tile.position = Vector2(x * TILE_SIZE, y * TILE_SIZE)
+		add_child(fallback_tile)
+		return
+	
+	# Position the sprite
+	sprite.position = Vector2(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2)
+	
+	# Scale sprite to fit tile size
+	if sprite.texture:
+		var texture_size = sprite.texture.get_size()
+		var scale_x = float(TILE_SIZE) / texture_size.x
+		var scale_y = float(TILE_SIZE) / texture_size.y
+		sprite.scale = Vector2(scale_x, scale_y)
+	
+	# Create smooth, blended hue variations across the world
+	var hue_variation = create_smooth_hue_variation(x, y)
+	var saturation_variation = create_smooth_saturation_variation(x, y)
+	var brightness_variation = create_smooth_brightness_variation(x, y)
+	
+	# Apply the subtle color modulation
+	var base_color = Color.WHITE
+	base_color = base_color.from_hsv(hue_variation, saturation_variation, brightness_variation)
+	sprite.modulate = base_color
+	
+	# Very occasional rotation for minimal texture variation (only 2% of tiles)
+	var position_hash = (x * 7 + y * 11) % 100
+	if position_hash < 2:
+		var rotations = [90, 180, 270]
+		sprite.rotation_degrees = rotations[position_hash % rotations.size()]
+	
+	add_child(sprite)
+
+func create_smooth_hue_variation(x: int, y: int) -> float:
+	# Create smooth hue variation using sine waves for natural blending
+	var base_hue = 0.33 # Green hue (120 degrees / 360 = 0.33)
+	
+	# Multiple frequency sine waves for organic variation
+	var wave1 = sin(x * 0.05) * sin(y * 0.03) * 0.02 # Large slow waves
+	var wave2 = sin(x * 0.1) * sin(y * 0.08) * 0.01 # Medium waves
+	var wave3 = sin(x * 0.2) * sin(y * 0.15) * 0.005 # Small detail waves
+	
+	var hue = base_hue + wave1 + wave2 + wave3
+	
+	# Keep hue in valid range and within green spectrum
+	return clamp(hue, 0.25, 0.4) # Stay in green-yellow to blue-green range
+
+func create_smooth_saturation_variation(x: int, y: int) -> float:
+	# Subtle saturation variation for depth
+	var base_saturation = 0.6
+	
+	var sat_wave1 = sin(x * 0.03) * cos(y * 0.04) * 0.1
+	var sat_wave2 = sin(x * 0.08) * sin(y * 0.06) * 0.05
+	
+	var saturation = base_saturation + sat_wave1 + sat_wave2
+	
+	return clamp(saturation, 0.4, 0.8)
+
+func create_smooth_brightness_variation(x: int, y: int) -> float:
+	# Subtle brightness variation for organic feel
+	var base_brightness = 0.85
+	
+	var bright_wave1 = sin(x * 0.04) * sin(y * 0.05) * 0.08
+	var bright_wave2 = cos(x * 0.09) * cos(y * 0.07) * 0.04
+	var bright_wave3 = sin(x * 0.15) * cos(y * 0.12) * 0.02
+	
+	var brightness = base_brightness + bright_wave1 + bright_wave2 + bright_wave3
+	
+	return clamp(brightness, 0.7, 1.0)
+
+func create_collectible_item(grid_x: int, grid_y: int):
+	# Use the proper CollectibleItem scene
+	var collectible_scene = preload("res://scenes/items/CollectibleItem.tscn")
+	var item = collectible_scene.instantiate()
+	
+	# Random item type based on rarity
+	var weights = [60, 15, 15, 7, 3] # Weighted chances: Coin, Key, Potion, Speed, Dash
+	var total_weight = 100
+	var random_value = rng.randi_range(1, total_weight)
+	var current_weight = 0
+	var item_type_index = 0
+	
+	for i in range(weights.size()):
+		current_weight += weights[i]
+		if random_value <= current_weight:
+			item_type_index = i
+			break
+	
+	# Set the item type
+	item.item_type_index = item_type_index
+	item.item_type = item_type_index # Make sure both are set
+	
+	# Position the item in world coordinates
+	item.position = Vector2(grid_x * TILE_SIZE + TILE_SIZE / 2, grid_y * TILE_SIZE + TILE_SIZE / 2)
+	
+	# Add to world
+	add_child(item)
 
 # Public method to regenerate world
 func regenerate():

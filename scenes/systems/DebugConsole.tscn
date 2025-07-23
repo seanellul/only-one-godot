@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3x8j5k9m2n4p"]
+
+[ext_resource type="Script" path="res://scenes/systems/DebugConsole.gd" id="1_debug_console"]
+
+[node name="DebugConsole" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_debug_console")
+
+[node name="DebugPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = -50.0
+offset_bottom = -50.0
+
+[node name="VBox" type="VBoxContainer" parent="DebugPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="TitleLabel" type="Label" parent="DebugPanel/VBox"]
+layout_mode = 2
+text = "🛠️ DEBUG CONSOLE 🛠️"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="DebugPanel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="DebugLog" type="VBoxContainer" parent="DebugPanel/VBox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CommandInput" type="LineEdit" parent="DebugPanel/VBox"]
+layout_mode = 2
+placeholder_text = "Enter debug command... (type 'help' for commands)" 

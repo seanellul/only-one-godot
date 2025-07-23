@@ -1,13 +1,14 @@
 extends CharacterBody2D
 
-const SPEED = 200.0
-const DASH_SPEED = 600.0
-const FAST_DASH_SPEED = 800.0
-const SLOW_DASH_SPEED = 400.0
-const DASH_DURATION = 0.3
-const FAST_DASH_DURATION = 0.3
-const SLOW_DASH_DURATION = 0.8
-const DASH_COOLDOWN = 1.0
+# Base stats - these can be modified by upgrades
+var SPEED = 200.0
+var DASH_SPEED = 600.0
+var FAST_DASH_SPEED = 800.0
+var SLOW_DASH_SPEED = 400.0
+var DASH_DURATION = 0.3
+var FAST_DASH_DURATION = 0.3
+var SLOW_DASH_DURATION = 0.8
+var DASH_COOLDOWN = 1.0
 
 # Roll animation has 14 frames - we'll calculate speed to match dash duration
 const ROLL_ANIMATION_FRAMES = 14

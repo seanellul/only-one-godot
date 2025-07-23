@@ -1,8 +1,11 @@
-[gd_scene load_steps=4 format=3 uid="uid://b8v0h7k2x5kam"]
+[gd_scene load_steps=7 format=3 uid="uid://b8v0h7k2x5kam"]
 
 [ext_resource type="PackedScene" uid="uid://b4k8qyxkqjn8k" path="res://scenes/player/Player.tscn" id="1_abc123"]
 [ext_resource type="PackedScene" uid="uid://bwx8v2j5h8lal" path="res://scenes/world/WorldGenerator.tscn" id="2_worldgen"]
 [ext_resource type="Script" path="res://scenes/rooms/RoomController.gd" id="3_controller"]
+[ext_resource type="PackedScene" uid="uid://e56x5puewshn" path="res://scenes/ui/InventoryUI.tscn" id="4_inventory"]
+[ext_resource type="PackedScene" uid="uid://byak4j2m8n7p1" path="res://scenes/ui/QuickHUD.tscn" id="5_quickhud"]
+[ext_resource type="PackedScene" path="res://scenes/systems/DebugConsole.tscn" id="6_debug"]
 
 [node name="Room" type="Node2D"]
 script = ExtResource("3_controller")
@@ -22,26 +25,22 @@ offset_left = 10.0
 offset_top = -80.0
 offset_right = 400.0
 offset_bottom = -10.0
-text = "WASD - Move
-Space - Dash (+ Shift for fast, + Ctrl for slow)
-R - Regenerate World
-C - Toggle Collision Debug"
+text = "WASD - Move  |  Space - Dash (+ Shift/Ctrl)
+E - Inventory  |  1/2/3 - Use Items
+R - Regenerate  |  C - Collision Debug
+F1 - Debug Console  |  F2/F3/F4 - Quick Debug"
 vertical_alignment = 2
 
-[node name="Legend" type="Label" parent="UI"]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -200.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = 120.0
-text = "Legend:
-🟢 Green - Floors/Grass
-⬜ Grey - Paths
-⬛ Black - Walls (collision)
-🟡 Yellow - Items of Interest
 
-🗺️ MASSIVE WORLD: 400x300 tiles
-🏰 Up to 60 rooms to explore!"
-vertical_alignment = 1
+
+[node name="InventoryUI" parent="." instance=ExtResource("4_inventory")]
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="QuickHUD" parent="." instance=ExtResource("5_quickhud")]
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DebugConsole" parent="." instance=ExtResource("6_debug")]
+grow_horizontal = 2
+grow_vertical = 2
