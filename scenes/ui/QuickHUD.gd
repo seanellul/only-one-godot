@@ -29,9 +29,11 @@ func create_fallback_ui():
 	for child in get_children():
 		child.queue_free()
 	
-	# Create a simple container
+	# Create a simple container (positioned properly on screen)
 	var hud_container = HBoxContainer.new()
-	hud_container.position = Vector2(get_viewport().get_visible_rect().size.x - 300, 10)
+	var screen_size = get_viewport().get_visible_rect().size
+	hud_container.position = Vector2(screen_size.x - 300, 10) # Top right
+	hud_container.add_theme_constant_override("separation", 15)
 	add_child(hud_container)
 	
 	# Create coin display
@@ -45,6 +47,8 @@ func create_fallback_ui():
 	
 	coin_label = Label.new()
 	coin_label.text = "0"
+	coin_label.add_theme_color_override("font_color", Color.WHITE)
+	coin_label.add_theme_font_size_override("font_size", 14)
 	coin_container.add_child(coin_label)
 	
 	# Create key display
@@ -58,6 +62,8 @@ func create_fallback_ui():
 	
 	key_label = Label.new()
 	key_label.text = "0"
+	key_label.add_theme_color_override("font_color", Color.WHITE)
+	key_label.add_theme_font_size_override("font_size", 14)
 	key_container.add_child(key_label)
 	
 	# Create potion display
@@ -71,6 +77,8 @@ func create_fallback_ui():
 	
 	potion_label = Label.new()
 	potion_label.text = "0"
+	potion_label.add_theme_color_override("font_color", Color.WHITE)
+	potion_label.add_theme_font_size_override("font_size", 14)
 	potion_container.add_child(potion_label)
 	
 	# Create notification container
@@ -204,17 +212,17 @@ func create_notification_popup() -> Control:
 	
 	return popup
 
-func animate_notification(notification: Control):
+func animate_notification(notification_popup: Control):
 	# Start offscreen
-	notification.position.x = -250
-	notification.modulate.a = 0
+	notification_popup.position.x = -250
+	notification_popup.modulate.a = 0
 	
 	var tween = create_tween()
 	tween.set_parallel(true)
 	
 	# Slide in
-	tween.tween_property(notification, "position:x", 10, 0.3)
-	tween.tween_property(notification, "modulate:a", 1.0, 0.3)
+	tween.tween_property(notification_popup, "position:x", 10, 0.3)
+	tween.tween_property(notification_popup, "modulate:a", 1.0, 0.3)
 	
 	# Hold for 2 seconds
 	await get_tree().create_timer(2.0).timeout
@@ -222,11 +230,11 @@ func animate_notification(notification: Control):
 	# Slide out
 	var exit_tween = create_tween()
 	exit_tween.set_parallel(true)
-	exit_tween.tween_property(notification, "position:x", -250, 0.3)
-	exit_tween.tween_property(notification, "modulate:a", 0.0, 0.3)
+	exit_tween.tween_property(notification_popup, "position:x", -250, 0.3)
+	exit_tween.tween_property(notification_popup, "modulate:a", 0.0, 0.3)
 	
 	# Remove after animation
-	exit_tween.tween_callback(notification.queue_free).set_delay(0.3)
+	exit_tween.tween_callback(notification_popup.queue_free).set_delay(0.3)
 
 # Hotkey item usage
 func _input(event):

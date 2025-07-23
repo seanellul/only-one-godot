@@ -630,9 +630,9 @@ func create_player_stats(container: VBoxContainer):
 	
 	# Get player reference for stats
 	var player = get_tree().get_first_node_in_group("player")
-	var upgrades = null
+	var _upgrades = null
 	if player and player.has_node("PlayerUpgrades"):
-		upgrades = player.get_node("PlayerUpgrades")
+		_upgrades = player.get_node("PlayerUpgrades")
 	
 	# Stats grid inside panel
 	var stats_grid = VBoxContainer.new()
@@ -717,7 +717,7 @@ func create_progression_stats(container: VBoxContainer):
 	if collection_tracker:
 		var stats = collection_tracker.get_collection_stats()
 		create_stat_row(prog_grid, "📦 Items Collected", str(stats.total_collected))
-		create_stat_row(prog_grid, "🏆 Achievements", str(stats.achievements_unlocked.size()) + "/6")
+		create_stat_row(prog_grid, "�� Achievements", str(stats.achievements_unlocked.size()) + "/6")
 		create_stat_row(prog_grid, "✨ Completion", "%.1f%%" % stats.completion_percentage)
 
 func create_stat_row(parent: VBoxContainer, label: String, value: String):

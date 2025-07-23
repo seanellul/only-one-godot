@@ -295,8 +295,7 @@ func create_grass_tile(x: int, y: int):
 	var brightness_variation = create_smooth_brightness_variation(x, y)
 	
 	# Apply the subtle color modulation
-	var base_color = Color.WHITE
-	base_color = base_color.from_hsv(hue_variation, saturation_variation, brightness_variation)
+	var base_color = Color.from_hsv(hue_variation, saturation_variation, brightness_variation)
 	sprite.modulate = base_color
 	
 	# Very occasional rotation for minimal texture variation (only 2% of tiles)

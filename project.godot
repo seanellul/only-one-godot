@@ -15,18 +15,14 @@ run/main_scene="res://scenes/rooms/Room.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
-[display]
-
-window/size/viewport_width=1152
-window/size/viewport_height=648
-window/size/resizable=true
-window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
-
 [autoload]
 
 InventorySystem="*res://scenes/systems/InventorySystem.gd"
 CollectionTracker="*res://scenes/systems/CollectionTracker.gd"
+
+[display]
+
+window/stretch/mode="canvas_items"
 
 [file_customization]
 

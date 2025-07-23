@@ -107,6 +107,40 @@ func execute_command(command: String):
 			handle_save_command()
 		"load":
 			handle_load_command()
+		"damage":
+			handle_damage_command(parts)
+		"heal":
+			handle_heal_command(parts)
+		"spawn_enemy":
+			handle_spawn_enemy_command()
+		"toggle_hitboxes":
+			handle_toggle_hitboxes_command()
+		"kill_enemies":
+			handle_kill_enemies_command()
+		"enemy_status":
+			handle_enemy_status_command()
+		"force_spawn":
+			handle_force_spawn_command()
+		"debug_spawn":
+			handle_debug_spawn_command()
+		"travel_town":
+			handle_travel_town_command()
+		"travel_danger":
+			handle_travel_danger_command(parts)
+		"give_keys":
+			handle_give_keys_command(parts)
+		"test_death":
+			handle_test_death_command()
+		"test_spawn":
+			handle_test_spawn_command()
+		"test_enemies":
+			handle_test_enemies_command()
+		"spawn_test_enemy":
+			handle_spawn_test_enemy_command()
+		"test_loot":
+			handle_test_loot_command()
+		"test_npcs":
+			handle_test_npcs_command()
 		_:
 			log_message("Unknown command: " + cmd + ". Type 'help' for available commands.", Color.RED)
 
@@ -127,6 +161,27 @@ WORLD:
 PLAYER:
   speed <value>           - Set player speed
   upgrade <type>          - Apply upgrade (speed/dash)
+
+COMBAT:
+  damage <amount>         - Damage player (test combat)
+  heal <amount>           - Heal player
+  spawn_enemy             - Spawn enemy near player
+  toggle_hitboxes         - Toggle hitbox debug visualization
+  kill_enemies            - Kill all enemies
+  enemy_status            - Show enemy spawner status
+  force_spawn             - Force spawn enemies immediately
+  debug_spawn             - Spawn enemy without distance restrictions
+
+WORLD:
+  travel_town             - Travel to town (safe area)
+  travel_danger <level>   - Travel to danger zone
+  give_keys <amount>      - Give keys for portal access
+  test_death              - Test player death system
+  test_spawn              - Test dungeon spawn positioning
+  test_enemies            - Check enemy visibility and spawning
+  spawn_test_enemy        - Spawn enemy right next to player for testing
+  test_loot               - Check loot visibility and spawn test loot
+  test_npcs               - Check NPC setup and interactions
 
 DEBUG:
   debug collision         - Toggle collision debug
@@ -332,6 +387,78 @@ func handle_load_command():
 	# Simple load functionality
 	log_message("Load functionality not implemented yet", Color.YELLOW)
 
+# Combat debug commands
+func handle_damage_command(parts: Array):
+	if parts.size() < 2:
+		log_message("Usage: damage <amount>", Color.RED)
+		return
+	
+	var amount = parts[1].to_int()
+	if amount <= 0:
+		log_message("Damage amount must be positive!", Color.RED)
+		return
+	
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player.has_method("take_damage"):
+		player.take_damage(amount)
+		log_message("Dealt " + str(amount) + " damage to player", Color.ORANGE)
+	else:
+		log_message("Player not found or cannot take damage", Color.RED)
+
+func handle_heal_command(parts: Array):
+	if parts.size() < 2:
+		log_message("Usage: heal <amount>", Color.RED)
+		return
+	
+	var amount = parts[1].to_int()
+	if amount <= 0:
+		log_message("Heal amount must be positive!", Color.RED)
+		return
+	
+	var player = get_tree().get_first_node_in_group("player")
+	if player and player.has_method("get_combat_system"):
+		var combat_system = player.get_combat_system()
+		if combat_system and combat_system.has_method("heal"):
+			combat_system.heal(amount)
+			log_message("Healed player for " + str(amount) + " health", Color.GREEN)
+		else:
+			log_message("Player combat system not found", Color.RED)
+	else:
+		log_message("Player not found", Color.RED)
+
+func handle_spawn_enemy_command():
+	var spawner = get_tree().current_scene.get_node_or_null("EnemySpawner")
+	if spawner and spawner.has_method("debug_spawn_near_player"):
+		spawner.debug_spawn_near_player()
+		log_message("Spawned enemy near player", Color.GREEN)
+	else:
+		log_message("Enemy spawner not found", Color.RED)
+
+func handle_toggle_hitboxes_command():
+	# Toggle hitbox visibility globally
+	var hitboxes = get_tree().get_nodes_in_group("attack_hitboxes")
+	if hitboxes.size() == 0:
+		log_message("No active hitboxes to toggle", Color.YELLOW)
+		return
+	
+	var toggle_state = not hitboxes[0].debug_visible
+	for hitbox in hitboxes:
+		if hitbox.has_method("set_debug_visible"):
+			hitbox.set_debug_visible(toggle_state)
+	
+	log_message("Hitbox debug visibility: " + ("ON" if toggle_state else "OFF"), Color.CYAN)
+
+func handle_kill_enemies_command():
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var killed_count = 0
+	
+	for enemy in enemies:
+		if enemy.has_method("take_damage"):
+			enemy.take_damage(9999) # Overkill damage
+			killed_count += 1
+	
+	log_message("Killed " + str(killed_count) + " enemies", Color.RED)
+
 func log_message(message: String, color: Color = Color.WHITE):
 	if not debug_log:
 		return
@@ -347,3 +474,224 @@ func log_message(message: String, color: Color = Color.WHITE):
 	var scroll_container = debug_log.get_parent()
 	if scroll_container is ScrollContainer:
 		scroll_container.scroll_vertical = scroll_container.get_v_scroll_bar().max_value
+
+func handle_enemy_status_command():
+	var enemy_spawner = get_tree().get_first_node_in_group("enemy_spawner")
+	if not enemy_spawner:
+		# Try alternative path
+		enemy_spawner = get_tree().current_scene.get_node_or_null("EnemySpawner")
+	
+	if not enemy_spawner:
+		log_message("Enemy spawner not found!", Color.RED)
+		return
+	
+	if enemy_spawner.has_method("get_status"):
+		enemy_spawner.get_status()
+		log_message("Enemy spawner status printed to output (check terminal)", Color.CYAN)
+	else:
+		log_message("Current enemies: " + str(enemy_spawner.get_enemy_count()), Color.GREEN)
+
+func handle_force_spawn_command():
+	var enemy_spawner = get_tree().get_first_node_in_group("enemy_spawner")
+	if not enemy_spawner:
+		# Try alternative path
+		enemy_spawner = get_tree().current_scene.get_node_or_null("EnemySpawner")
+	
+	if not enemy_spawner:
+		log_message("Enemy spawner not found!", Color.RED)
+		return
+	
+	if enemy_spawner.has_method("force_spawn_enemies"):
+		enemy_spawner.force_spawn_enemies()
+		log_message("Forced enemy spawn attempt", Color.GREEN)
+	else:
+		log_message("Force spawn method not available", Color.RED)
+
+func handle_debug_spawn_command():
+	var enemy_spawner = get_tree().get_first_node_in_group("enemy_spawner")
+	if not enemy_spawner:
+		# Try alternative path
+		enemy_spawner = get_tree().current_scene.get_node_or_null("EnemySpawner")
+	
+	if not enemy_spawner:
+		log_message("Enemy spawner not found!", Color.RED)
+		return
+	
+	if enemy_spawner.has_method("debug_spawn_unrestricted"):
+		enemy_spawner.debug_spawn_unrestricted()
+		log_message("Debug spawn attempt (no distance restrictions)", Color.GREEN)
+	else:
+		log_message("Debug spawn method not available", Color.RED)
+
+func handle_travel_town_command():
+	var world_manager = get_tree().current_scene.get_node_or_null("WorldSystemManager")
+	if not world_manager:
+		log_message("World system manager not found!", Color.RED)
+		return
+	
+	if world_manager.has_method("debug_return_to_town"):
+		world_manager.debug_return_to_town()
+		log_message("Traveling to town...", Color.GREEN)
+	else:
+		log_message("Travel method not available", Color.RED)
+
+func handle_travel_danger_command(parts: Array):
+	var level = 1
+	if parts.size() > 1:
+		level = parts[1].to_int()
+	
+	var world_manager = get_tree().current_scene.get_node_or_null("WorldSystemManager")
+	if not world_manager:
+		log_message("World system manager not found!", Color.RED)
+		return
+	
+	if world_manager.has_method("debug_travel_to_danger_zone"):
+		world_manager.debug_travel_to_danger_zone(level)
+		log_message("Traveling to danger zone level " + str(level) + "...", Color.GREEN)
+	else:
+		log_message("Travel method not available", Color.RED)
+
+func handle_give_keys_command(parts: Array):
+	var amount = 5
+	if parts.size() > 1:
+		amount = parts[1].to_int()
+	
+	var inventory_system = get_node_or_null("/root/InventorySystem")
+	if not inventory_system:
+		log_message("Inventory system not found!", Color.RED)
+		return
+	
+	inventory_system.add_item(1, amount) # Keys are item type 1
+	log_message("Added " + str(amount) + " keys to inventory", Color.GREEN)
+
+func handle_test_death_command():
+	var player = get_tree().get_first_node_in_group("player")
+	if not player:
+		log_message("Player not found!", Color.RED)
+		return
+	
+	var combat_system = player.get_combat_system()
+	if not combat_system:
+		log_message("Combat system not found!", Color.RED)
+		return
+	
+	# Kill the player for testing
+	combat_system.current_health = 0
+	combat_system.die()
+	log_message("Triggered player death for testing", Color.YELLOW)
+
+func handle_test_spawn_command():
+	# Test dungeon spawning multiple times
+	var world_manager = get_tree().current_scene.get_node_or_null("WorldSystemManager")
+	if not world_manager:
+		log_message("World manager not found!", Color.RED)
+		return
+	
+	# Go to a danger zone and check spawn
+	world_manager.load_zone(world_manager.ZoneType.DANGER_ZONE, 1, randi())
+	log_message("Regenerated danger zone for spawn testing", Color.CYAN)
+	
+	# Wait a moment then report player position
+	await get_tree().process_frame
+	var player = get_tree().get_first_node_in_group("player")
+	if player:
+		log_message("Player position: " + str(player.global_position), Color.GREEN)
+	else:
+		log_message("Player not found!", Color.RED)
+
+func handle_test_enemies_command():
+	# Check for enemies in the current scene
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	log_message("Found " + str(enemies.size()) + " enemies in scene", Color.CYAN)
+	
+	if enemies.size() == 0:
+		log_message("No enemies found - checking danger zone generator...", Color.YELLOW)
+		var world_manager = get_tree().current_scene.get_node_or_null("WorldSystemManager")
+		if world_manager and world_manager.danger_zone_generator:
+			var spawned_count = world_manager.danger_zone_generator.enemies_spawned.size()
+			log_message("Danger zone generator has " + str(spawned_count) + " enemies spawned", Color.CYAN)
+		else:
+			log_message("No danger zone generator found", Color.RED)
+	else:
+		for i in range(min(3, enemies.size())):
+			var enemy = enemies[i]
+			log_message("Enemy " + str(i) + " at " + str(enemy.global_position), Color.GREEN)
+			if enemy.has_method("get_debug_info"):
+				var info = enemy.get_debug_info()
+				log_message("  Health: " + info.health + " State: " + info.state, Color.WHITE)
+
+func handle_spawn_test_enemy_command():
+	var player = get_tree().get_first_node_in_group("player")
+	if not player:
+		log_message("Player not found!", Color.RED)
+		return
+	
+	# Spawn an enemy right next to the player for visibility testing
+	var enemy_scene = preload("res://scenes/enemies/BasicEnemy.tscn")
+	var enemy = enemy_scene.instantiate()
+	
+	# Position it 50 pixels to the right of the player
+	enemy.global_position = player.global_position + Vector2(50, 0)
+	
+	# Add to scene
+	get_tree().current_scene.add_child(enemy)
+	
+	log_message("Spawned test enemy at " + str(enemy.global_position), Color.GREEN)
+
+func handle_test_loot_command():
+	var player = get_tree().get_first_node_in_group("player")
+	if not player:
+		log_message("Player not found!", Color.RED)
+		return
+	
+	# Check existing loot
+	var loot_items = get_tree().get_nodes_in_group("collectible_items")
+	log_message("Found " + str(loot_items.size()) + " loot items in scene", Color.CYAN)
+	
+	for i in range(min(3, loot_items.size())):
+		var item = loot_items[i]
+		log_message("Loot " + str(i) + ": type " + str(item.item_type_index) + " at " + str(item.global_position), Color.GREEN)
+	
+	# Spawn test loot near player
+	var collectible_scene = preload("res://scenes/items/CollectibleItem.tscn")
+	var test_item = collectible_scene.instantiate()
+	test_item.item_type_index = 0 # Coin
+	test_item.global_position = player.global_position + Vector2(60, 0)
+	test_item.z_index = 50
+	
+	get_tree().current_scene.add_child(test_item)
+	log_message("Spawned test coin at " + str(test_item.global_position), Color.YELLOW)
+
+func handle_test_npcs_command():
+	var player = get_tree().get_first_node_in_group("player")
+	if not player:
+		log_message("Player not found!", Color.RED)
+		return
+	
+	# Find NPCs in the scene
+	var npcs = []
+	var all_nodes = get_tree().get_nodes_in_group("shopnpc")
+	if all_nodes.size() == 0:
+		# Try finding by class name
+		all_nodes = get_all_nodes_of_type(get_tree().current_scene, "ShopNPC")
+	
+	log_message("Found " + str(all_nodes.size()) + " NPCs in scene", Color.CYAN)
+	
+	for npc in all_nodes:
+		if npc.has_method("get_global_position"):
+			var distance = player.global_position.distance_to(npc.global_position)
+			log_message("NPC " + npc.shop_type + " at " + str(npc.global_position) + " (distance: " + str(int(distance)) + ")", Color.GREEN)
+			
+			# Check if player is in range
+			if distance < 100:
+				log_message("  Player is close to this NPC!", Color.YELLOW)
+
+func get_all_nodes_of_type(node: Node, type_name: String) -> Array:
+	var result = []
+	if node.get_script() and node.get_script().get_global_name() == type_name:
+		result.append(node)
+	
+	for child in node.get_children():
+		result.append_array(get_all_nodes_of_type(child, type_name))
+	
+	return result

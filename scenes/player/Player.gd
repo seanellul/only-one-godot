@@ -1,5 +1,8 @@
 extends CharacterBody2D
 
+# Combat system reference
+var combat_system: Node
+
 # Base stats - these can be modified by upgrades
 var SPEED = 200.0
 var DASH_SPEED = 600.0
@@ -37,11 +40,22 @@ var target_offset = Vector2.ZERO
 @onready var animated_sprite = $AnimatedSprite2D
 
 func _ready():
+	# Add to player group for enemy targeting
+	add_to_group("player")
+	
 	# Configure smooth wall sliding
 	wall_min_slide_angle = 0.0 # Allow sliding at any angle
 	floor_stop_on_slope = false
 	floor_constant_speed = true
 	floor_snap_length = 0
+	
+	# Add combat system
+	combat_system = preload("res://scenes/player/CombatSystem.gd").new()
+	add_child(combat_system)
+	
+	# Set up collision layer for combat
+	collision_layer = 2 # Player layer
+	collision_mask = 1 # World layer (walls, etc.)
 	
 	# Connect animation finished signal for smooth transitions
 	animated_sprite.animation_finished.connect(_on_animation_finished)
@@ -49,6 +63,15 @@ func _ready():
 	# Initialize sprite offset system
 	current_offset = animation_offsets.get(animated_sprite.animation, Vector2.ZERO)
 	target_offset = current_offset
+
+func get_combat_system():
+	"""Return the combat system for external access"""
+	return combat_system
+
+func take_damage(amount: int, _source = null):
+	"""Delegate damage to combat system"""
+	if combat_system:
+		combat_system.take_damage(amount, _source)
 	
 func _physics_process(delta):
 	# Update timers
@@ -159,6 +182,14 @@ func update_animation(direction: Vector2):
 		animated_sprite.flip_h = false
 	elif direction.x < 0:
 		animated_sprite.flip_h = true
+	
+	# Don't override attack animations - let combat system handle those
+	if combat_system and combat_system.is_attacking:
+		return
+	
+	# Don't override death animations - let combat system handle those
+	if combat_system and combat_system.is_dead:
+		return
 	
 	# Handle roll ending transition
 	if roll_end_transition and not is_dashing:

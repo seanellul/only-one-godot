@@ -13,6 +13,11 @@ var bob_timer: float = 0.0
 var original_position: Vector2
 
 func _ready():
+	print("CollectibleItem: Ready - item type ", item_type_index, " at position ", global_position)
+	
+	# Ensure item is in the collectible_items group
+	add_to_group("collectible_items")
+	
 	# Set up item appearance based on type
 	setup_item_visual()
 	
@@ -20,25 +25,48 @@ func _ready():
 	body_entered.connect(_on_body_entered)
 	
 	# Store original position for bobbing animation
-	original_position = position
+	original_position = global_position
 	
 	# Set up collision detection
-	collision_layer = 2 # Items layer
-	collision_mask = 1 # Player layer
+	collision_layer = 16 # Items layer (separate from player)
+	collision_mask = 2 # Player layer (matches player's collision_layer)
+	
+	# Ensure visibility
+	z_index = 50
+	visible = true
+	
+	print("CollectibleItem: Setup complete - collision layers: ", collision_layer, "/", collision_mask)
 
 func setup_item_visual():
+	print("CollectibleItem: Setting up visual for item type ", item_type_index)
+	
 	# Get inventory system reference
-	var inventory = get_node("/root/InventorySystem")
+	var inventory = get_node_or_null("/root/InventorySystem")
 	if inventory:
 		var color = inventory.get_item_color(item_type_index)
 		sprite.color = color
-		sprite.size = Vector2(24, 24)
-		sprite.position = Vector2(-12, -12) # Center the sprite
+		print("CollectibleItem: Set color to ", color, " for item type ", item_type_index)
+	else:
+		# Fallback colors if no inventory system
+		match item_type_index:
+			0: sprite.color = Color.YELLOW # Coin
+			1: sprite.color = Color.CYAN # Key
+			2: sprite.color = Color.RED # Health Potion
+			3: sprite.color = Color.GREEN # Speed Boost
+			4: sprite.color = Color.MAGENTA # Dash Boost
+			_: sprite.color = Color.WHITE # Default
+		print("CollectibleItem: Using fallback color ", sprite.color, " for item type ", item_type_index)
+	
+	sprite.size = Vector2(28, 28) # Make slightly larger
+	sprite.position = Vector2(-14, -14) # Center the sprite
+	sprite.z_index = 1 # Ensure sprite is on top
 	
 	# Set up collision shape
 	var shape = RectangleShape2D.new()
-	shape.size = Vector2(24, 24)
+	shape.size = Vector2(28, 28) # Match sprite size
 	collision.shape = shape
+	
+	print("CollectibleItem: Visual setup complete - size: ", sprite.size, " color: ", sprite.color)
 
 func _physics_process(delta):
 	if not is_collected:
@@ -52,19 +80,26 @@ func _physics_process(delta):
 		sprite.modulate = Color(pulse, pulse, pulse, 1.0)
 
 func _on_body_entered(body):
-	if body.name == "Player" and not is_collected:
+	print("CollectibleItem: Body entered - ", body.name, " (is_player: ", body.is_in_group("player"), ")")
+	if (body.name == "Player" or body.is_in_group("player")) and not is_collected:
+		print("CollectibleItem: Collecting item type ", item_type_index)
 		collect_item(body)
 
 func collect_item(_player):
 	if is_collected:
+		print("CollectibleItem: Already collected!")
 		return
 		
 	is_collected = true
+	print("CollectibleItem: Item collected! Type: ", item_type_index)
 	
 	# Add item to inventory
-	var inventory_system = get_node("/root/InventorySystem")
+	var inventory_system = get_node_or_null("/root/InventorySystem")
 	if inventory_system:
 		inventory_system.add_item(item_type_index, 1)
+		print("CollectibleItem: Added to inventory system")
+	else:
+		print("CollectibleItem: Warning - no inventory system found!")
 	
 	# Play pickup animation
 	play_pickup_animation()

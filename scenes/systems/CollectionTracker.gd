@@ -131,8 +131,8 @@ func on_item_used(item_type: int, _amount: int = 1):
 				# Check if this was the 5th speed boost ever used
 				var player = get_tree().get_first_node_in_group("player")
 				if player and player.has_node("PlayerUpgrades"):
-					var upgrades = player.get_node("PlayerUpgrades")
-					if upgrades.speed_boosts_applied >= 5 and not achievements["speed_demon"]["unlocked"]:
+					var upgrades_node = player.get_node("PlayerUpgrades")
+					if upgrades_node.speed_boosts_applied >= 5 and not achievements["speed_demon"]["unlocked"]:
 						unlock_achievement("speed_demon")
 		
 		4: # Dash boost used
@@ -140,6 +140,6 @@ func on_item_used(item_type: int, _amount: int = 1):
 			if inventory_system:
 				var player = get_tree().get_first_node_in_group("player")
 				if player and player.has_node("PlayerUpgrades"):
-					var upgrades = player.get_node("PlayerUpgrades")
-					if upgrades.dash_boosts_applied >= 5 and not achievements["dash_expert"]["unlocked"]:
+					var upgrades_node = player.get_node("PlayerUpgrades")
+					if upgrades_node.dash_boosts_applied >= 5 and not achievements["dash_expert"]["unlocked"]:
 						unlock_achievement("dash_expert")
