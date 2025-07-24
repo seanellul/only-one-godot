@@ -154,7 +154,7 @@ func create_shop_ui():
 	# Semi-transparent background
 	var bg_overlay = ColorRect.new()
 	bg_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg_overlay.color = Color(0, 0, 0, 0.5)
+	bg_overlay.color = Color(0, 0, 0, 0.8)
 	shop_ui.add_child(bg_overlay)
 	
 	# Main shop panel (properly centered)
@@ -247,14 +247,7 @@ func create_shop_ui():
 	close_button.position = Vector2(190, 350)
 	close_button.pressed.connect(close_shop)
 	panel.add_child(close_button)
-	
-	# Instructions (as child of panel)
-	var instructions = Label.new()
-	instructions.text = "Press Escape or Click Close to exit"
-	instructions.position = Vector2(20, 370)
-	instructions.add_theme_color_override("font_color", Color.LIGHT_GRAY)
-	instructions.add_theme_font_size_override("font_size", 12)
-	panel.add_child(instructions)
+
 	
 	# Add to a CanvasLayer for proper UI overlay (always on screen)
 	var canvas_layer = CanvasLayer.new()

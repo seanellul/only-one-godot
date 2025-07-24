@@ -112,6 +112,9 @@ func generate_town():
 	town_generator.generate_town()
 	player_spawn_position = town_generator.get_spawn_position()
 	
+	# Set up interactive elements
+	setup_town_interactions()
+	
 	# Create portals to danger zones
 	create_town_portals()
 
@@ -142,6 +145,29 @@ func generate_secret_area(level: int, seed: int):
 	print("WorldSystemManager: Generating secret area level ", level)
 	# TODO: Implement secret area generation
 	pass
+
+func setup_town_interactions():
+	"""Set up interactive elements in the town"""
+	if not town_generator:
+		return
+	
+	print("WorldSystemManager: Setting up town interactions...")
+	
+	# Get interactive signs from town generator
+	var interactive_signs = town_generator.get_interactive_signs()
+	
+	# Find the player's interaction system
+	var player_nodes = get_tree().get_nodes_in_group("player")
+	if player_nodes.size() > 0:
+		var player = player_nodes[0]
+		if player.has_method("get") and player.get("interaction_system"):
+			var interaction_system = player.interaction_system
+			interaction_system.register_interactive_signs(interactive_signs)
+			print("WorldSystemManager: Registered ", interactive_signs.size(), " interactive signs")
+		else:
+			print("WorldSystemManager: Warning - Player has no interaction system")
+	else:
+		print("WorldSystemManager: Warning - No player found for interaction setup")
 
 func create_town_portals():
 	"""Create portals in town that lead to danger zones"""

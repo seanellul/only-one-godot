@@ -3,6 +3,9 @@ extends CharacterBody2D
 # Combat system reference
 var combat_system: Node
 
+# Interaction system reference
+var interaction_system: Node
+
 # Base stats - these can be modified by upgrades
 var SPEED = 200.0
 var DASH_SPEED = 600.0
@@ -52,6 +55,11 @@ func _ready():
 	# Add combat system
 	combat_system = preload("res://scenes/player/CombatSystem.gd").new()
 	add_child(combat_system)
+	
+	# Add interaction system
+	interaction_system = preload("res://scenes/systems/InteractionSystem.gd").new()
+	add_child(interaction_system)
+	interaction_system.set_player_reference(self)
 	
 	# Set up collision layer for combat
 	collision_layer = 2 # Player layer
