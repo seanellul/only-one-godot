@@ -88,7 +88,19 @@ func setup_dialogue_system():
 	if not dialogue_ui:
 		var dialogue_scene = preload("res://scenes/ui/DialogueUI.tscn")
 		dialogue_ui = dialogue_scene.instantiate()
-		get_tree().current_scene.add_child.call_deferred(dialogue_ui)
+		dialogue_ui.visible = false
+		
+		# Add to player node instead of scene
+		if player_reference:
+			player_reference.add_child.call_deferred(dialogue_ui)
+		else:
+			# Fallback: find player and add to it
+			var player = get_tree().get_first_node_in_group("player")
+			if player:
+				player.add_child.call_deferred(dialogue_ui)
+			else:
+				# Last resort: add to scene
+				get_tree().current_scene.add_child.call_deferred(dialogue_ui)
 
 func set_player_reference(player: Node2D):
 	"""Set reference to the player"""
@@ -265,11 +277,8 @@ func add_interactive_object(object_node: Node2D, interaction_data: Dictionary):
 
 func test_dialogue_system():
 	"""Test the dialogue system with sample data"""
-	print("InteractionSystem: Testing dialogue system...")
-	
 	# Ensure dialogue UI is available
 	if not dialogue_ui:
-		print("InteractionSystem: Creating dialogue UI for test...")
 		setup_dialogue_system()
 		await get_tree().process_frame
 	
@@ -281,5 +290,4 @@ func test_dialogue_system():
 		"description": "This is a test dialogue to verify the system is working correctly."
 	}
 	
-	print("InteractionSystem: Showing test dialogue with data: ", test_data)
 	dialogue_ui.show_dialogue(test_data)

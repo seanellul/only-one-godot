@@ -145,20 +145,20 @@ func create_medieval_health_ui():
 	health_container.add_child(damage_info)
 	
 	# Damage icon
-	var damage_icon = Label.new()
-	damage_icon.text = "⚔️"
-	damage_icon.add_theme_font_size_override("font_size", 14)
-	damage_info.add_child(damage_icon)
+	# var damage_icon = Label.new()
+	# damage_icon.text = "⚔️"
+	# damage_icon.add_theme_font_size_override("font_size", 14)
+	# damage_info.add_child(damage_icon)
 	
-	# Damage label
-	damage_label = Label.new()
-	damage_label.text = "Attack: 25"
-	damage_label.add_theme_font_size_override("font_size", 12)
-	damage_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4, 1.0))
-	damage_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
-	damage_label.add_theme_constant_override("shadow_offset_x", 1)
-	damage_label.add_theme_constant_override("shadow_offset_y", 1)
-	damage_info.add_child(damage_label)
+	# # Damage label
+	# damage_label = Label.new()
+	# damage_label.text = "Attack: 25"
+	# damage_label.add_theme_font_size_override("font_size", 12)
+	# damage_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4, 1.0))
+	# damage_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
+	# damage_label.add_theme_constant_override("shadow_offset_x", 1)
+	# damage_label.add_theme_constant_override("shadow_offset_y", 1)
+	# damage_info.add_child(damage_label)
 
 func create_knight_emblem():
 	"""Create a heraldic cross emblem on the shield"""
@@ -216,7 +216,7 @@ func connect_to_player():
 			# Get initial values
 			var stats = combat_system.get_combat_stats()
 			_on_health_changed(stats.health, stats.max_health)
-			damage_label.text = "Attack: " + str(stats.damage)
+			#damage_label.text = "Attack: " + str(stats.damage)
 			
 			print("HealthUI: Connected to medieval combat display")
 

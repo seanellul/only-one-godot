@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 class_name DialogueUI
 
 # Dialogue system for interacting with signs and NPCs
@@ -10,6 +10,7 @@ signal dialogue_finished
 @onready var speaker_label: Label
 @onready var continue_button: Button
 @onready var background_overlay: ColorRect
+@onready var ui_container: Control
 
 var current_dialogue_data: Dictionary = {}
 var dialogue_queue: Array = []
@@ -19,26 +20,38 @@ func _ready():
 	create_dialogue_ui()
 	hide_dialogue()
 	
+	# Ensure we start completely hidden
+	visible = false
+	if ui_container:
+		ui_container.visible = false
+	
 	# Connect input handling
 	set_process_input(true)
 
 func create_dialogue_ui():
 	"""Create the medieval-styled dialogue UI"""
 	
+	# Create a Control node to hold all UI elements
+	ui_container = Control.new()
+	ui_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(ui_container)
+	
 	# Background overlay (darkens screen)
 	background_overlay = ColorRect.new()
 	background_overlay.color = Color(0, 0, 0, 0.6)
-	background_overlay.size = get_viewport().get_visible_rect().size
-	background_overlay.position = Vector2.ZERO
+	background_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background_overlay.z_index = 100
-	add_child(background_overlay)
+	ui_container.add_child(background_overlay)
 	
 	# Main dialogue panel with medieval styling
 	dialogue_panel = Panel.new()
 	dialogue_panel.size = Vector2(600, 200)
+	
+	# Position relative to viewport center (will work with camera)
+	var viewport_size = get_viewport().get_visible_rect().size
 	dialogue_panel.position = Vector2(
-		(get_viewport().get_visible_rect().size.x - 600) / 2,
-		get_viewport().get_visible_rect().size.y - 250
+		(viewport_size.x - 600) / 2.0,
+		viewport_size.y - 250
 	)
 	dialogue_panel.z_index = 101
 	
@@ -55,7 +68,7 @@ func create_dialogue_ui():
 	panel_style.corner_radius_bottom_left = 12
 	panel_style.corner_radius_bottom_right = 12
 	dialogue_panel.add_theme_stylebox_override("panel", panel_style)
-	add_child(dialogue_panel)
+	ui_container.add_child(dialogue_panel)
 	
 	# Speaker/Title label
 	speaker_label = Label.new()
@@ -143,8 +156,6 @@ func show_dialogue(dialogue_data: Dictionary):
 	if is_showing:
 		return
 	
-	print("DialogueUI: Showing dialogue with data: ", dialogue_data)
-	
 	current_dialogue_data = dialogue_data
 	is_showing = true
 	
@@ -160,21 +171,20 @@ func show_dialogue(dialogue_data: Dictionary):
 			show_generic_dialogue(dialogue_data)
 	
 	# Show the UI
-	background_overlay.visible = true
-	dialogue_panel.visible = true
+	visible = true
+	if ui_container:
+		ui_container.visible = true
+	if background_overlay:
+		background_overlay.visible = true
+	if dialogue_panel:
+		dialogue_panel.visible = true
 	
-	# Pause the game while showing dialogue
-	get_tree().paused = true
-	
-	print("DialogueUI: Dialogue UI now showing")
 
 func show_shop_sign_dialogue(data: Dictionary):
 	"""Show dialogue for shop signs"""
 	var shop_type = data.get("shop_type", "unknown")
 	var title = data.get("title", "Shop")
 	var description = data.get("description", "A mysterious shop.")
-	
-	print("DialogueUI: Shop dialogue - Type: ", shop_type, " Title: ", title)
 	
 	speaker_label.text = title
 	
@@ -184,8 +194,6 @@ func show_shop_sign_dialogue(data: Dictionary):
 	
 	var content_text = "[center]%s[/center]\n\n[color=%s]%s[/color]\n\n[i]Press [E] to enter and browse our wares...[/i]" % [shop_icon, shop_color, description]
 	content_label.text = content_text
-	
-	print("DialogueUI: Set content text: ", content_text)
 
 func show_npc_dialogue(data: Dictionary):
 	"""Show dialogue for NPC conversations"""
@@ -207,8 +215,6 @@ func show_generic_dialogue(data: Dictionary):
 	"""Show generic dialogue"""
 	var title = data.get("title", "Information")
 	var text = data.get("text", data.get("description", "Something interesting."))
-	
-	print("DialogueUI: Generic dialogue - Title: ", title, " Text: ", text)
 	
 	speaker_label.text = title
 	content_label.text = text
@@ -237,8 +243,13 @@ func hide_dialogue():
 		return
 	
 	is_showing = false
-	background_overlay.visible = false
-	dialogue_panel.visible = false
+	visible = false
+	if ui_container:
+		ui_container.visible = false
+	if background_overlay:
+		background_overlay.visible = false
+	if dialogue_panel:
+		dialogue_panel.visible = false
 	
 	# Resume the game
 	get_tree().paused = false

@@ -96,11 +96,12 @@ func generate_town():
 	# Add lighting system
 	setup_dynamic_lighting()
 	
-	# Set spawn position in central plaza (ensure it's safe)
+	# Set spawn position in central plaza but outside fountain collision area
 	var center_x = TOWN_WIDTH / 2
 	var center_y = TOWN_HEIGHT / 2
-	spawn_position = Vector2((center_x + 2) * TILE_SIZE, (center_y + 2) * TILE_SIZE)
-	print("TownGenerator: Player spawn set to ", spawn_position, " (center plaza)")
+	# Spawn outside the 4x4 fountain area (fountain extends 2 tiles in each direction)
+	spawn_position = Vector2((center_x + 3) * TILE_SIZE, (center_y + 3) * TILE_SIZE)
+	print("TownGenerator: Player spawn set to ", spawn_position, " (plaza, outside fountain)")
 	
 	print("TownGenerator: Massive enhanced town with lighting system complete")
 
@@ -138,7 +139,7 @@ func create_dynamic_light(light_data: Dictionary):
 	
 	# Configure light properties based on type
 	if light_type == "torch":
-		light.energy = 1.3  # Stronger for visible shadows
+		light.energy = 1.3 # Stronger for visible shadows
 		light.color = Color(1.0, 0.7, 0.3, 1.0) # Warm orange
 		light.texture_scale = 1.2
 		
@@ -146,7 +147,7 @@ func create_dynamic_light(light_data: Dictionary):
 		create_flickering_light(light)
 		
 	elif light_type == "lamp":
-		light.energy = 1.6  # Stronger for visible shadows
+		light.energy = 1.6 # Stronger for visible shadows
 		light.color = Color(1.0, 0.9, 0.6, 1.0) # Warm white
 		light.texture_scale = 1.5
 	
@@ -156,7 +157,7 @@ func create_dynamic_light(light_data: Dictionary):
 	# Create shadow casting
 	light.shadow_enabled = true
 	light.shadow_color = Color(0.2, 0.2, 0.3, 0.6)
-	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5  # Smoother shadows
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5 # Smoother shadows
 	
 	add_child(light)
 	decoration_items.append(light)
@@ -190,177 +191,337 @@ func create_organic_town_layout():
 	create_scattered_gardens()
 
 func create_organic_roads(center_x: int, center_y: int):
-	"""Create more natural, winding road patterns"""
+	"""Create connected road network leading to shop entrances"""
 	
-	# Main plaza approach roads (slightly curved) - scaled up for larger town
-	# North approach
-	for i in range(20): # Increased from 8
-		var x = center_x + (sin(i * 0.3) * 4) as int # Increased curve amplitude
-		var y = center_y - 20 + i # Increased length
+	# Create main circular road around plaza
+	create_circular_plaza_road(center_x, center_y)
+	
+	# Create direct paths to each shop entrance
+	create_shop_access_roads(center_x, center_y)
+	
+	# Create connecting roads between shops
+	create_connecting_roads()
+
+func create_circular_plaza_road(center_x: int, center_y: int):
+	"""Create a circular road around the plaza"""
+	var road_radius = 10 # Distance from plaza center
+	
+	for angle in range(0, 360, 5): # Every 5 degrees
+		var rad = deg_to_rad(angle)
+		var x = center_x + int(cos(rad) * road_radius)
+		var y = center_y + int(sin(rad) * road_radius)
+		
 		if is_valid_position(x, y):
 			create_road_tile(x, y)
-			create_road_tile(x - 1, y) # Make roads wider
-			create_road_tile(x + 1, y)
-			create_road_tile(x - 2, y) # Even wider for scale
-			create_road_tile(x + 2, y)
-	
-	# South approach  
-	for i in range(20):
-		var x = center_x + (sin(i * 0.4) * 3) as int
-		var y = center_y + 8 + i # Increased offset
-		if is_valid_position(x, y):
-			create_road_tile(x, y)
+			# Make roads wider for main plaza ring
 			create_road_tile(x - 1, y)
 			create_road_tile(x + 1, y)
-			create_road_tile(x - 2, y)
-			create_road_tile(x + 2, y)
-	
-	# East approach
-	for i in range(20):
-		var x = center_x + 8 + i # Increased offset
-		var y = center_y + (cos(i * 0.5) * 2) as int
-		if is_valid_position(x, y):
-			create_road_tile(x, y)
 			create_road_tile(x, y - 1)
 			create_road_tile(x, y + 1)
-			create_road_tile(x, y - 2)
-			create_road_tile(x, y + 2)
-	
-	# West approach
-	for i in range(20):
-		var x = center_x - 20 + i # Increased length
-		var y = center_y + (cos(i * 0.4) * 3) as int
-		if is_valid_position(x, y):
-			create_road_tile(x, y)
-			create_road_tile(x, y - 1)
-			create_road_tile(x, y + 1)
-			create_road_tile(x, y - 2)
-			create_road_tile(x, y + 2)
-	
-	# Connecting side paths - scaled up positions
-	create_curved_path(Vector2(20, 20), Vector2(35, 30))
-	create_curved_path(Vector2(85, 20), Vector2(70, 30))
-	create_curved_path(Vector2(20, 60), Vector2(35, 50))
-	create_curved_path(Vector2(85, 60), Vector2(70, 50))
 
-func create_curved_path(start: Vector2, end: Vector2):
-	"""Create a curved path between two points"""
+func create_shop_access_roads(center_x: int, center_y: int):
+	"""Create direct paths from plaza to each shop entrance"""
+	# Shop entrance positions (updated for new positions)
+	var shop_entrances = [
+		Vector2(23, 23), # L-shaped weapon shop entrance (15+8, 12+11)
+		Vector2(90, 25), # Round item shop entrance (85+5, 15+10)
+		Vector2(17, 70), # Rectangular armor shop entrance (10+7, 70+0) - top entrance
+		Vector2(95, 75) # Round magic shop entrance (95+0, 70+5) - left entrance
+	]
+	
+	# Create roads from plaza circle to each shop entrance
+	for entrance in shop_entrances:
+		create_direct_road_path(Vector2(center_x, center_y), entrance)
+
+func create_connecting_roads():
+	"""Create roads connecting shops to each other"""
+	var connection_paths = [
+		# Connect weapon shop to item shop (north section)
+		{"start": Vector2(23, 23), "end": Vector2(90, 25)},
+		# Connect armor shop to magic shop (south section)
+		{"start": Vector2(17, 70), "end": Vector2(95, 75)},
+		# Connect west shops to east shops
+		{"start": Vector2(23, 23), "end": Vector2(17, 70)},
+		{"start": Vector2(90, 25), "end": Vector2(95, 75)}
+	]
+	
+	for path in connection_paths:
+		create_direct_road_path(path.start, path.end)
+
+func create_direct_road_path(start: Vector2, end: Vector2):
+	"""Create a direct road path between two points"""
 	var steps = int(start.distance_to(end))
-	for i in range(steps):
-		var t = float(i) / float(steps)
-		# Add curve using quadratic bezier
-		var control = Vector2((start.x + end.x) / 2, (start.y + end.y) / 2 - 6) # Increased curve depth
-		var pos = start.lerp(control, t).lerp(control.lerp(end, t), t)
-		
+	
+	for i in range(steps + 1):
+		var t = float(i) / float(steps) if steps > 0 else 0
+		var pos = start.lerp(end, t)
 		var x = int(pos.x)
 		var y = int(pos.y)
+		
 		if is_valid_position(x, y):
 			create_road_tile(x, y)
-			# Make curved paths wider too
+			# Make roads slightly wider
 			create_road_tile(x - 1, y)
 			create_road_tile(x + 1, y)
 
+
 func create_enhanced_central_plaza():
-	"""Create a more elaborate central plaza"""
+	"""Create a more elaborate central plaza with perfectly centered fountain"""
 	var center_x = TOWN_WIDTH / 2
 	var center_y = TOWN_HEIGHT / 2
 	var plaza_size = 16 # Much larger plaza (was 8)
 	
-	# Create irregular plaza shape
+	# Create perfectly circular plaza shape
 	for x in range(center_x - plaza_size / 2, center_x + plaza_size / 2):
 		for y in range(center_y - plaza_size / 2, center_y + plaza_size / 2):
 			var dist = Vector2(x - center_x, y - center_y).length()
 			if dist < plaza_size / 2:
 				create_plaza_tile(x, y)
 	
-	# Enhanced fountain with proper Z-index
-	create_massive_fountain(center_x, center_y)
+	# Enhanced fountain with proper Z-index and collision - perfectly centered
+	create_massive_fountain_with_collision(center_x, center_y)
 	
 	# Add decorative elements around plaza
 	create_plaza_decorations(center_x, center_y)
 
 func create_varied_shops():
-	"""Create shops with more varied sizes and styles"""
+	"""Create shops with varied shapes and styles"""
 	var shop_configs = [
 		{
-			"pos": Vector2(15, 12), # Scaled positions
-			"size": Vector2(15, 12), # Larger buildings
+			"pos": Vector2(15, 12), # L-shaped weapon shop (forge) - top left
 			"type": "weapon",
 			"style": "stone",
+			"shape": "L_shaped",
 			"features": ["forge", "anvil"]
 		},
 		{
-			"pos": Vector2(75, 10),
-			"size": Vector2(12, 10),
+			"pos": Vector2(85, 15), # Round item shop (apothecary) - top right
 			"type": "item",
 			"style": "timber",
+			"shape": "round",
 			"features": ["herbs", "shelves"]
 		},
 		{
-			"pos": Vector2(10, 55),
-			"size": Vector2(14, 11),
+			"pos": Vector2(10, 70), # Rectangular armor shop - bottom left
 			"type": "armor",
 			"style": "stone",
+			"shape": "rectangular",
 			"features": ["displays", "racks"]
 		},
 		{
-			"pos": Vector2(80, 60),
-			"size": Vector2(11, 14),
+			"pos": Vector2(95, 70), # Round magic shop - bottom right
 			"type": "magic",
 			"style": "tower",
+			"shape": "round",
 			"features": ["crystals", "library"]
 		}
 	]
 	
 	for config in shop_configs:
-		create_enhanced_shop(config)
+		create_enhanced_shop_with_shape(config)
 
-func create_enhanced_shop(config: Dictionary):
-	"""Create a shop with enhanced design and features"""
+func create_enhanced_shop_with_shape(config: Dictionary):
+	"""Create a shop with varied shapes and enhanced design"""
 	var pos = config.pos
-	var size = config.size
 	var shop_type = config.type
 	var style = config.style
+	var shape = config.get("shape", "rectangular")
 	
-	var width = int(size.x)
-	var height = int(size.y)
 	var start_x = int(pos.x)
 	var start_y = int(pos.y)
 	
-	# Create varied building structure
-	for sx in range(width):
-		for sy in range(height):
-			var tile_x = start_x + sx
-			var tile_y = start_y + sy
-			
-			# Create walls on perimeter
-			if sx == 0 or sx == width - 1 or sy == 0 or sy == height - 1:
-				# Entrance variations
-				var has_entrance = false
-				if sy == height - 1: # Front wall
-					if sx >= width / 2 - 1 and sx <= width / 2 + 1: # Triple door entrance
-						has_entrance = true
-				
-				if not has_entrance:
-					if style == "timber" or shop_type == "magic":
-						create_timber_wall_tile(tile_x, tile_y)
-					else:
-						create_wall_tile(tile_x, tile_y)
+	var shop_tiles = []
+	var entrance_pos = Vector2()
+	var npc_pos = Vector2()
+	var sign_pos = Vector2()
+	
+	# Create different shapes with appropriate entrance directions
+	match shape:
+		"L_shaped":
+			shop_tiles = create_l_shaped_building(start_x, start_y)
+			entrance_pos = Vector2(start_x + 8, start_y + 11) # Bottom of the L extension
+			npc_pos = Vector2((start_x + 3) * TILE_SIZE, (start_y + 6) * TILE_SIZE)
+			sign_pos = Vector2(start_x + 8, start_y + 12) # In front of entrance
+		"round":
+			# Different entrance directions based on shop type/position
+			var entrance_direction = "bottom"
+			if shop_type == "magic": # Bottom right magic shop
+				entrance_direction = "left"
+				shop_tiles = create_round_building(start_x, start_y, entrance_direction)
+				entrance_pos = Vector2(start_x, start_y + 5) # Left side
+				npc_pos = Vector2((start_x + 5) * TILE_SIZE, (start_y + 5) * TILE_SIZE)
+				sign_pos = Vector2(start_x - 1, start_y + 5) # In front of entrance
+			else: # Top right apothecary
+				shop_tiles = create_round_building(start_x, start_y, entrance_direction)
+				entrance_pos = Vector2(start_x + 5, start_y + 10) # Bottom center
+				npc_pos = Vector2((start_x + 5) * TILE_SIZE, (start_y + 5) * TILE_SIZE)
+				sign_pos = Vector2(start_x + 5, start_y + 11) # In front of entrance
+		"tower":
+			shop_tiles = create_tower_building(start_x, start_y)
+			entrance_pos = Vector2(start_x + 2, start_y + 11) # Bottom center
+			npc_pos = Vector2((start_x + 2) * TILE_SIZE, (start_y + 8) * TILE_SIZE)
+			sign_pos = Vector2(start_x + 2, start_y + 12) # In front of entrance
+		"rectangular":
+			# Bottom left armor shop should have entrance on top (north) facing plaza
+			shop_tiles = create_rectangular_building(start_x, start_y, "top")
+			entrance_pos = Vector2(start_x + 7, start_y) # Top center
+			npc_pos = Vector2((start_x + 7) * TILE_SIZE, (start_y + 5) * TILE_SIZE)
+			sign_pos = Vector2(start_x + 7, start_y - 1) # In front of entrance
+	
+	# Build the shop using the shape tiles
+	for tile_data in shop_tiles:
+		var tile_x = tile_data.x
+		var tile_y = tile_data.y
+		var tile_type = tile_data.type
+		
+		match tile_type:
+			"wall":
+				if style == "timber" or shop_type == "magic":
+					create_timber_wall_tile(tile_x, tile_y)
 				else:
-					create_floor_tile(tile_x, tile_y)
-			else:
+					create_wall_tile(tile_x, tile_y)
+			"floor":
+				create_floor_tile(tile_x, tile_y)
+			"entrance":
 				create_floor_tile(tile_x, tile_y)
 	
-	# Add procedural shop decorations
-	add_procedural_shop_decorations(start_x, start_y, width, height, config)
-	
 	# Create enhanced shop NPC
-	var npc_pos = Vector2((start_x + width / 2) * TILE_SIZE, (start_y + height / 2) * TILE_SIZE)
 	create_shop_npc(npc_pos, shop_type)
 	shop_locations.append(npc_pos)
 	
-	# Enhanced shop signage with interaction
-	create_interactive_shop_sign(start_x + width / 2, start_y - 1, shop_type, config)
+	# Enhanced shop signage with interaction - positioned at entrance
+	create_interactive_shop_sign(int(sign_pos.x), int(sign_pos.y), shop_type, config)
+
+func create_l_shaped_building(start_x: int, start_y: int) -> Array:
+	"""Create an L-shaped building layout with connected rooms"""
+	var tiles = []
+	
+	# Main rectangle (12x8)
+	for x in range(12):
+		for y in range(8):
+			var tile_x = start_x + x
+			var tile_y = start_y + y
+			
+			if x == 0 or x == 11 or y == 0 or y == 7:
+				# Create opening to extension on the right side
+				if y == 7 and x >= 6 and x <= 8: # Opening to extension
+					tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+				else:
+					tiles.append({"x": tile_x, "y": tile_y, "type": "wall"})
+			else:
+				tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+	
+	# Extension rectangle (6x4) - attached to bottom right
+	for x in range(6):
+		for y in range(4):
+			var tile_x = start_x + 6 + x
+			var tile_y = start_y + 8 + y
+			
+			if x == 0 or x == 5 or y == 0 or y == 3:
+				if y == 3 and x >= 2 and x <= 3: # Main entrance in extension
+					tiles.append({"x": tile_x, "y": tile_y, "type": "entrance"})
+				elif y == 0 and x >= 0 and x <= 2: # Opening to main room
+					tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+				else:
+					tiles.append({"x": tile_x, "y": tile_y, "type": "wall"})
+			else:
+				tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+	
+	return tiles
+
+func create_round_building(start_x: int, start_y: int, entrance_side: String = "bottom") -> Array:
+	"""Create a round/circular building layout with configurable entrance"""
+	var tiles = []
+	var center_x = 5
+	var center_y = 5
+	var radius = 5
+	
+	for x in range(11):
+		for y in range(11):
+			var tile_x = start_x + x
+			var tile_y = start_y + y
+			var dist = Vector2(x - center_x, y - center_y).length()
+			
+			if dist <= radius:
+				if dist >= radius - 1.2 and dist <= radius:
+					var is_entrance = false
+					match entrance_side:
+						"bottom":
+							if y >= 9 and x >= 4 and x <= 6:
+								is_entrance = true
+						"top":
+							if y <= 1 and x >= 4 and x <= 6:
+								is_entrance = true
+						"left":
+							if x <= 1 and y >= 4 and y <= 6:
+								is_entrance = true
+						"right":
+							if x >= 9 and y >= 4 and y <= 6:
+								is_entrance = true
+					
+					if is_entrance:
+						tiles.append({"x": tile_x, "y": tile_y, "type": "entrance"})
+					else:
+						tiles.append({"x": tile_x, "y": tile_y, "type": "wall"})
+				else:
+					tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+	
+	return tiles
+
+func create_tower_building(start_x: int, start_y: int) -> Array:
+	"""Create a tall tower building layout"""
+	var tiles = []
+	
+	# Tower base (5x12)
+	for x in range(5):
+		for y in range(12):
+			var tile_x = start_x + x
+			var tile_y = start_y + y
+			
+			if x == 0 or x == 4 or y == 0 or y == 11:
+				if y == 11 and x >= 1 and x <= 3: # Entrance at bottom
+					tiles.append({"x": tile_x, "y": tile_y, "type": "entrance"})
+				else:
+					tiles.append({"x": tile_x, "y": tile_y, "type": "wall"})
+			else:
+				tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+	
+	return tiles
+
+func create_rectangular_building(start_x: int, start_y: int, entrance_side: String = "bottom") -> Array:
+	"""Create a traditional rectangular building layout with configurable entrance"""
+	var tiles = []
+	
+	# Rectangle (15x11)
+	for x in range(15):
+		for y in range(11):
+			var tile_x = start_x + x
+			var tile_y = start_y + y
+			
+			if x == 0 or x == 14 or y == 0 or y == 10:
+				var is_entrance = false
+				match entrance_side:
+					"bottom":
+						if y == 10 and x >= 6 and x <= 8:
+							is_entrance = true
+					"top":
+						if y == 0 and x >= 6 and x <= 8:
+							is_entrance = true
+					"left":
+						if x == 0 and y >= 4 and y <= 6:
+							is_entrance = true
+					"right":
+						if x == 14 and y >= 4 and y <= 6:
+							is_entrance = true
+				
+				if is_entrance:
+					tiles.append({"x": tile_x, "y": tile_y, "type": "entrance"})
+				else:
+					tiles.append({"x": tile_x, "y": tile_y, "type": "wall"})
+			else:
+				tiles.append({"x": tile_x, "y": tile_y, "type": "floor"})
+	
+	return tiles
 
 func add_procedural_shop_decorations(x: int, y: int, width: int, height: int, config: Dictionary):
 	"""Add procedural decorative elements specific to shop type"""
@@ -974,33 +1135,47 @@ func create_floor_tile(x: int, y: int):
 		tile.position = Vector2(x * TILE_SIZE, y * TILE_SIZE)
 		add_child(tile)
 
-func create_massive_fountain(x: int, y: int):
-	"""Create a massive fountain with enhanced particles"""
+func create_massive_fountain_with_collision(x: int, y: int):
+	"""Create a massive fountain with enhanced particles and collision"""
+	# Create fountain with collision body
+	var fountain_body = StaticBody2D.new()
+	var collision_shape = CollisionShape2D.new()
+	var shape = RectangleShape2D.new()
+	shape.size = Vector2(TILE_SIZE * 4, TILE_SIZE * 4)
+	collision_shape.shape = shape
+	collision_shape.position = Vector2(0, 0) # Centered on the body
+	
 	var texture = village_textures.get("fountain_base")
 	if texture:
 		var sprite = Sprite2D.new()
 		sprite.texture = texture
-		sprite.position = Vector2(x * TILE_SIZE, y * TILE_SIZE)
+		sprite.position = Vector2(0, 0) # Centered on the body
 		
 		# Scale for massive 4x4 fountain (128x128 pixels)
 		var scale_factor = float(TILE_SIZE * 4) / 256.0
 		sprite.scale = Vector2(scale_factor, scale_factor)
 		sprite.z_index = -1 # Behind player
 		
-		add_child(sprite)
-		decoration_items.append(sprite)
-		
-		# Add enhanced fountain particles
-		create_massive_fountain_particles(Vector2(x * TILE_SIZE, y * TILE_SIZE - 20))
+		fountain_body.add_child(collision_shape)
+		fountain_body.add_child(sprite)
 	else:
 		# Fallback
 		var fountain = ColorRect.new()
 		fountain.size = Vector2(TILE_SIZE * 4, TILE_SIZE * 4)
 		fountain.color = Color(0.2, 0.4, 0.8, 1)
-		fountain.position = Vector2(x * TILE_SIZE - TILE_SIZE * 2, y * TILE_SIZE - TILE_SIZE * 2)
+		fountain.position = Vector2(-TILE_SIZE * 2, -TILE_SIZE * 2) # Centered on the body
 		fountain.z_index = -1 # Behind player
-		add_child(fountain)
-		decoration_items.append(fountain)
+		
+		fountain_body.add_child(collision_shape)
+		fountain_body.add_child(fountain)
+	
+	# Position the fountain body perfectly centered
+	fountain_body.position = Vector2(x * TILE_SIZE, y * TILE_SIZE)
+	add_child(fountain_body)
+	decoration_items.append(fountain_body)
+	
+	# Add enhanced fountain particles - positioned at fountain center
+	create_massive_fountain_particles(Vector2(x * TILE_SIZE, y * TILE_SIZE - 20))
 
 func create_massive_fountain_particles(pos: Vector2):
 	"""Create enhanced water particles for the massive fountain"""

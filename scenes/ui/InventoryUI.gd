@@ -646,6 +646,8 @@ func create_player_stats(container: VBoxContainer):
 	if player and "SPEED" in player:
 		speed_value = str(int(player.SPEED))
 	create_stat_row(stats_grid, "🏃 Movement Speed", speed_value)
+	create_stat_row(stats_grid, "💊 Health", str(player.get_combat_system().get_combat_stats().health))
+	create_stat_row(stats_grid, "💥 Damage", str(player.get_combat_system().get_combat_stats().damage))
 	
 	# Dash Stats
 	var dash_cooldown = "1.0s"
@@ -656,8 +658,8 @@ func create_player_stats(container: VBoxContainer):
 		if "DASH_SPEED" in player:
 			dash_speed = str(int(player.DASH_SPEED))
 	
-	create_stat_row(stats_grid, "⚡ Dash Cooldown", dash_cooldown)
-	create_stat_row(stats_grid, "💨 Dash Speed", dash_speed)
+	# create_stat_row(stats_grid, "⚡ Dash Cooldown", dash_cooldown)
+	# create_stat_row(stats_grid, "💨 Dash Speed", dash_speed)
 	
 	# # Upgrades Applied
 	# if upgrades:

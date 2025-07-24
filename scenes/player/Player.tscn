@@ -1,4 +1,4 @@
-[gd_scene load_steps=92 format=3 uid="uid://b4k8qyxkqjn8k"]
+[gd_scene load_steps=93 format=3 uid="uid://b4k8qyxkqjn8k"]
 
 [ext_resource type="Script" path="res://scenes/player/Player.gd" id="1_1x5k7"]
 [ext_resource type="Texture2D" uid="uid://usbs6n0ct2ar" path="res://scenes/sprites/knight/noBKG_KnightIdle_strip.png" id="2_idle"]
@@ -606,6 +606,12 @@ animations = [{
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1hnxe"]
 size = Vector2(14, 9)
 
+[sub_resource type="Environment" id="Environment_ndtnx"]
+background_mode = 3
+tonemap_mode = 3
+glow_enabled = true
+glow_hdr_threshold = 1.5
+
 [node name="Player" type="CharacterBody2D"]
 script = ExtResource("1_1x5k7")
 
@@ -620,6 +626,10 @@ position = Vector2(0, 7.5)
 shape = SubResource("RectangleShape2D_1hnxe")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.25, 0.25)
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Camera2D"]
+environment = SubResource("Environment_ndtnx")
 
 [node name="PlayerUpgrades" type="Node" parent="."]
 script = ExtResource("5_upgrades")
