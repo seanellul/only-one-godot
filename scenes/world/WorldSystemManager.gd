@@ -47,7 +47,7 @@ func initialize_world():
 	load_zone(ZoneType.TOWN, 1)
 	
 	# Set initial spawn position and emit signal
-	player_spawn_position = Vector2(400, 300) # Default town center
+	player_spawn_position = Vector2(2016, 1536) # Default town center
 	player_spawned.emit(player_spawn_position)
 
 func load_zone(zone_type: ZoneType, level: int = 1, seed: int = -1):
@@ -275,6 +275,13 @@ func _on_zone_changed(old_zone: ZoneType, new_zone: ZoneType):
 	"""Handle zone transition effects"""
 	print("WorldSystemManager: Zone changed from ", old_zone, " to ", new_zone)
 	
+	# Trigger auto-save for zone transitions (safely)
+	var auto_save_manager = get_node_or_null("/root/AutoSaveManager")
+	if auto_save_manager and is_instance_valid(auto_save_manager) and auto_save_manager.has_method("_on_zone_changed"):
+		var old_zone_name = ZoneType.keys()[old_zone] if old_zone < ZoneType.size() else "unknown"
+		var new_zone_name = ZoneType.keys()[new_zone] if new_zone < ZoneType.size() else "unknown"
+		auto_save_manager._on_zone_changed(old_zone_name, new_zone_name)
+	
 	# Apply zone-specific effects
 	match new_zone:
 		ZoneType.TOWN:
@@ -286,6 +293,10 @@ func _on_zone_changed(old_zone: ZoneType, new_zone: ZoneType):
 		ZoneType.DANGER_ZONE:
 			# Show danger warning
 			print("WorldSystemManager: Entering dangerous area!")
+			# Auto-save before entering danger (safely)
+			var auto_save_mgr = get_node_or_null("/root/AutoSaveManager")
+			if auto_save_mgr and is_instance_valid(auto_save_mgr) and auto_save_mgr.has_method("checkpoint_before_danger"):
+				auto_save_mgr.checkpoint_before_danger("danger_zone")
 
 func _on_zone_cleared(zone_type: ZoneType, level: int):
 	"""Handle zone completion rewards"""

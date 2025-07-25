@@ -11,12 +11,15 @@ config_version=5
 [application]
 
 config/name="cursor-test"
-run/main_scene="res://scenes/rooms/Room.tscn"
+run/main_scene="res://scenes/ui/CrashTestScene.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
+DebugManager="*res://scenes/systems/DebugManager.gd"
+SaveSystem="*res://scenes/systems/SaveSystem.gd"
+GameManager="*res://scenes/systems/GameManager.gd"
 InventorySystem="*res://scenes/systems/InventorySystem.gd"
 CollectionTracker="*res://scenes/systems/CollectionTracker.gd"
 

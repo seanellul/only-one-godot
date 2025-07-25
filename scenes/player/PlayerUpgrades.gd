@@ -68,3 +68,43 @@ func get_upgrade_info() -> Dictionary:
 		"speed_next_bonus": speed_boost_per_upgrade,
 		"dash_next_bonus": dash_cooldown_reduction
 	}
+
+# Save/Load functionality for SaveSystem
+func get_save_data() -> Dictionary:
+	"""Get upgrade data for saving"""
+	var save_data = {
+		"speed_boosts_applied": speed_boosts_applied,
+		"dash_boosts_applied": dash_boosts_applied
+	}
+	
+	print("PlayerUpgrades: Saving upgrade data: ", save_data)
+	return save_data
+
+func load_save_data(data: Dictionary):
+	"""Load upgrade data from save"""
+	if data.is_empty():
+		print("PlayerUpgrades: No upgrade data to load")
+		return
+	
+	print("PlayerUpgrades: Loading upgrade data: ", data)
+	
+	# Load saved upgrade counts
+	speed_boosts_applied = data.get("speed_boosts_applied", 0)
+	dash_boosts_applied = data.get("dash_boosts_applied", 0)
+	
+	# Apply the upgrades to restore player stats
+	apply_all_upgrades()
+	
+	print("PlayerUpgrades: Upgrades loaded - Speed: ", speed_boosts_applied, " Dash: ", dash_boosts_applied)
+
+func apply_all_upgrades():
+	"""Reapply all upgrades to restore player stats"""
+	# Apply speed upgrades
+	if speed_boosts_applied > 0:
+		apply_speed_upgrade()
+	
+	# Apply dash upgrades  
+	if dash_boosts_applied > 0:
+		apply_dash_upgrade()
+	
+	print("PlayerUpgrades: All upgrades reapplied")

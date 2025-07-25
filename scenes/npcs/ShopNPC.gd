@@ -139,6 +139,11 @@ func open_shop():
 	"""Open the shop interface"""
 	print("ShopNPC: Opening ", shop_type, " shop")
 	
+	# Track shop visit for contextual hints (safely)
+	var contextual_hints = get_node_or_null("/root/ContextualHints")
+	if contextual_hints and is_instance_valid(contextual_hints) and contextual_hints.has_method("_on_shop_visited"):
+		contextual_hints._on_shop_visited()
+	
 	# Create simple shop UI
 	create_shop_ui()
 
@@ -291,6 +296,11 @@ func _on_buy_item(item_name: String):
 			print("ShopNPC: Sold special item: ", item_name)
 	
 	show_message("Purchased " + item_name + " for " + str(price) + " gold!")
+	
+	# Trigger auto-save for shop purchases (safely)
+	var auto_save_manager = get_node_or_null("/root/AutoSaveManager")
+	if auto_save_manager and is_instance_valid(auto_save_manager) and auto_save_manager.has_method("_on_shop_purchase"):
+		auto_save_manager._on_shop_purchase(shop_type, item_name)
 
 func apply_upgrade(stat: String, value: int):
 	"""Apply a stat upgrade to the player"""

@@ -7,6 +7,20 @@ extends Control
 
 var is_open = false
 
+# Smart sorting system
+enum SortType {
+	BY_TYPE, # Default: coins, keys, potions, upgrades
+	BY_VALUE, # Highest value items first
+	BY_QUANTITY, # Most owned items first
+	BY_RECENT, # Recently collected items first
+	BY_USAGE # Most used items first
+}
+
+var current_sort_type: SortType = SortType.BY_TYPE
+var sort_buttons: Array[Button] = []
+var last_collected_items: Array = [] # Track recent collections
+var item_usage_count: Dictionary = {} # Track how often items are used
+
 func _ready():
 	# Start hidden
 	visible = false
@@ -20,13 +34,21 @@ func _ready():
 	# Style the main inventory panel
 	call_deferred("setup_main_panel_styling")
 	
+	# Setup smart sorting UI
+	call_deferred("setup_sorting_ui")
+	
 	# Ensure we're in the UI layer for proper rendering
 	call_deferred("move_to_ui_layer")
+	
+	# Add to inventory_ui group for easy finding
+	add_to_group("inventory_ui")
 	
 	# Connect inventory updates - use get_node to avoid typing issues
 	var inventory_system = get_node_or_null("/root/InventorySystem")
 	if inventory_system:
 		inventory_system.inventory_updated.connect(_on_inventory_updated)
+		if inventory_system.has_signal("item_collected"):
+			inventory_system.item_collected.connect(_on_item_collected_for_sorting)
 	
 	# Connect close button
 	if close_button:
@@ -125,7 +147,7 @@ func move_to_ui_layer():
 func _input(event):
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
-			KEY_E:
+			KEY_TAB:
 				toggle_inventory()
 			KEY_ESCAPE:
 				if is_open:
@@ -140,6 +162,11 @@ func toggle_inventory():
 func open_inventory():
 	is_open = true
 	visible = true
+	
+	# Track inventory opening for contextual hints (safely)
+	var contextual_hints = get_node_or_null("/root/ContextualHints")
+	if contextual_hints and is_instance_valid(contextual_hints) and contextual_hints.has_method("_on_inventory_opened"):
+		contextual_hints._on_inventory_opened()
 	
 	# Ensure we're on top
 	if get_parent():
@@ -176,6 +203,191 @@ func close_inventory():
 	if not debug_console or not debug_console.is_debug_open:
 		get_tree().paused = false
 
+func setup_sorting_ui():
+	"""Add smart sorting buttons to the inventory UI"""
+	# Find the left panel header area to add sorting buttons
+	var left_panel = inventory_panel.get_node_or_null("VBoxContainer/MainHSplit/LeftPanel")
+	if not left_panel:
+		return
+		
+	# Create sorting button container
+	var sort_container = HBoxContainer.new()
+	sort_container.name = "SortingContainer"
+	sort_container.add_theme_constant_override("separation", 5)
+	
+	# Add sorting label
+	var sort_label = Label.new()
+	sort_label.text = "Sort:"
+	sort_label.add_theme_font_size_override("font_size", 10)
+	sort_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8, 1.0))
+	sort_container.add_child(sort_label)
+	
+	# Create sort buttons
+	var sort_options = [
+		{"name": "Type", "type": SortType.BY_TYPE},
+		{"name": "Value", "type": SortType.BY_VALUE},
+		{"name": "Qty", "type": SortType.BY_QUANTITY},
+		{"name": "Recent", "type": SortType.BY_RECENT}
+	]
+	
+	for option in sort_options:
+		var button = Button.new()
+		button.text = option.name
+		button.custom_minimum_size = Vector2(50, 25)
+		button.add_theme_font_size_override("font_size", 9)
+		
+		# Style the button
+		var button_style = StyleBoxFlat.new()
+		if option.type == current_sort_type:
+			button_style.bg_color = Color(0.4, 0.3, 0.2, 0.9) # Active
+		else:
+			button_style.bg_color = Color(0.2, 0.2, 0.25, 0.8) # Inactive
+		button_style.border_color = Color(0.6, 0.5, 0.3, 0.8)
+		button_style.border_width_left = 1
+		button_style.border_width_right = 1
+		button_style.border_width_top = 1
+		button_style.border_width_bottom = 1
+		button_style.corner_radius_top_left = 3
+		button_style.corner_radius_top_right = 3
+		button_style.corner_radius_bottom_left = 3
+		button_style.corner_radius_bottom_right = 3
+		button.add_theme_stylebox_override("normal", button_style)
+		
+		# Connect button press
+		var sort_type = option.type
+		button.pressed.connect(func(): change_sort_type(sort_type))
+		
+		sort_buttons.append(button)
+		sort_container.add_child(button)
+	
+	# Insert sorting container after the header
+	var header = left_panel.get_node_or_null("InventoryHeader")
+	if header:
+		var header_index = header.get_index()
+		left_panel.add_child(sort_container)
+		left_panel.move_child(sort_container, header_index + 1)
+
+func change_sort_type(new_sort_type: SortType):
+	"""Change the current sort type and refresh inventory"""
+	current_sort_type = new_sort_type
+	
+	# Update button appearances
+	for i in range(sort_buttons.size()):
+		var button = sort_buttons[i]
+		var button_style = StyleBoxFlat.new()
+		if i == current_sort_type:
+			button_style.bg_color = Color(0.4, 0.3, 0.2, 0.9) # Active
+		else:
+			button_style.bg_color = Color(0.2, 0.2, 0.25, 0.8) # Inactive
+		button_style.border_color = Color(0.6, 0.5, 0.3, 0.8)
+		button_style.border_width_left = 1
+		button_style.border_width_right = 1
+		button_style.border_width_top = 1
+		button_style.border_width_bottom = 1
+		button_style.corner_radius_top_left = 3
+		button_style.corner_radius_top_right = 3
+		button_style.corner_radius_bottom_left = 3
+		button_style.corner_radius_bottom_right = 3
+		button.add_theme_stylebox_override("normal", button_style)
+	
+	# Refresh inventory with new sort
+	_on_inventory_updated()
+	print("InventoryUI: Sort changed to ", SortType.keys()[current_sort_type])
+
+func get_sorted_item_types() -> Array:
+	"""Get item types sorted according to current sort type"""
+	var base_item_types = [
+		InventorySystem.ItemType.COIN,
+		InventorySystem.ItemType.KEY,
+		InventorySystem.ItemType.HEALTH_POTION,
+		InventorySystem.ItemType.SPEED_BOOST,
+		InventorySystem.ItemType.DASH_BOOST
+	]
+	
+	# Filter to only include items we have (except coins)
+	var available_items = []
+	for item_type in base_item_types:
+		var count = InventorySystem.get_item_count(item_type)
+		if count > 0 or item_type == InventorySystem.ItemType.COIN:
+			available_items.append(item_type)
+	
+	# Sort based on current sort type
+	match current_sort_type:
+		SortType.BY_TYPE:
+			# Default order: coins, keys, potions, upgrades
+			return available_items
+			
+		SortType.BY_VALUE:
+			# Sort by item value (coins worth most, then keys, etc.)
+			var value_map = {
+				InventorySystem.ItemType.COIN: 1000,
+				InventorySystem.ItemType.KEY: 500,
+				InventorySystem.ItemType.HEALTH_POTION: 100,
+				InventorySystem.ItemType.SPEED_BOOST: 300,
+				InventorySystem.ItemType.DASH_BOOST: 350
+			}
+			available_items.sort_custom(func(a, b):
+				return value_map.get(a, 0) > value_map.get(b, 0)
+			)
+			return available_items
+			
+		SortType.BY_QUANTITY:
+			# Sort by quantity owned (most first)
+			available_items.sort_custom(func(a, b):
+				var count_a = InventorySystem.get_item_count(a)
+				var count_b = InventorySystem.get_item_count(b)
+				return count_a > count_b
+			)
+			return available_items
+			
+		SortType.BY_RECENT:
+			# Sort by recently collected (most recent first)
+			var recent_sorted = []
+			var remaining = available_items.duplicate()
+			
+			# Add recently collected items first
+			for item_type in last_collected_items:
+				if item_type in remaining:
+					recent_sorted.append(item_type)
+					remaining.erase(item_type)
+			
+			# Add remaining items
+			recent_sorted.append_array(remaining)
+			return recent_sorted
+			
+		SortType.BY_USAGE:
+			# Sort by usage frequency (most used first)
+			available_items.sort_custom(func(a, b):
+				var usage_a = item_usage_count.get(a, 0)
+				var usage_b = item_usage_count.get(b, 0)
+				return usage_a > usage_b
+			)
+			return available_items
+	
+	return available_items
+
+func track_item_collection(item_type: int):
+	"""Track when an item is collected for recent sorting"""
+	# Add to front of recent list
+	if item_type in last_collected_items:
+		last_collected_items.erase(item_type)
+	last_collected_items.push_front(item_type)
+	
+	# Keep only last 10 items
+	if last_collected_items.size() > 10:
+		last_collected_items.resize(10)
+
+func track_item_usage(item_type: int):
+	"""Track when an item is used for usage-based sorting"""
+	if item_type not in item_usage_count:
+		item_usage_count[item_type] = 0
+	item_usage_count[item_type] += 1
+
+func _on_item_collected_for_sorting(item_type: int, amount: int):
+	"""Handle item collection for smart sorting tracking"""
+	track_item_collection(item_type)
+	print("InventoryUI: Tracked collection of ", InventorySystem.ItemType.keys()[item_type] if item_type < InventorySystem.ItemType.size() else "Unknown")
+
 func _on_inventory_updated():
 	if not InventorySystem:
 		return
@@ -193,23 +405,17 @@ func _on_inventory_updated():
 	grid_container.add_theme_constant_override("v_separation", 8)
 	item_grid.add_child(grid_container)
 	
-	# Add item slots
-	var item_types = [
-		InventorySystem.ItemType.COIN,
-		InventorySystem.ItemType.KEY,
-		InventorySystem.ItemType.HEALTH_POTION,
-		InventorySystem.ItemType.SPEED_BOOST,
-		InventorySystem.ItemType.DASH_BOOST
-	]
+	# Get sorted item types
+	var sorted_item_types = get_sorted_item_types()
 	
-	for item_type in item_types:
+	# Add item slots in sorted order
+	for item_type in sorted_item_types:
 		var count = InventorySystem.get_item_count(item_type)
-		if count > 0 or item_type == InventorySystem.ItemType.COIN: # Always show coins
-			var item_info = get_item_info(item_type)
-			var slot_data = create_inventory_slot()
-			var slot = slot_data.slot
-			setup_item_slot(slot_data, item_type, count, item_info.name, item_info.color, item_info.description)
-			grid_container.add_child(slot)
+		var item_info = get_item_info(item_type)
+		var slot_data = create_inventory_slot()
+		var slot = slot_data.slot
+		setup_item_slot(slot_data, item_type, count, item_info.name, item_info.color, item_info.description)
+		grid_container.add_child(slot)
 	
 	# Update stats
 	update_stats_display()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://b8v0h7k2x5kam"]
+[gd_scene load_steps=9 format=3 uid="uid://b8v0h7k2x5kam"]
 
 [ext_resource type="PackedScene" uid="uid://b4k8qyxkqjn8k" path="res://scenes/player/Player.tscn" id="1_abc123"]
 [ext_resource type="Script" path="res://scenes/rooms/RoomController.gd" id="3_controller"]
@@ -7,13 +7,14 @@
 
 [ext_resource type="PackedScene" path="res://scenes/systems/DebugConsole.tscn" id="6_debug"]
 [ext_resource type="PackedScene" uid="uid://d8b22nxy2qbx" path="res://scenes/ui/HealthUI.tscn" id="8_health_ui"]
-[ext_resource type="Script" path="res://scenes/world/WorldSystemManager.gd" id="9_world_manager"]
+[ext_resource type="PackedScene" uid="uid://bwnx8h4gw7m4v" path="res://scenes/ui/Minimap.tscn" id="9_minimap"]
+[ext_resource type="Script" path="res://scenes/world/WorldSystemManager.gd" id="10_world_manager"]
 
 [node name="Room" type="Node2D"]
 script = ExtResource("3_controller")
 
 [node name="WorldSystemManager" type="Node2D" parent="."]
-script = ExtResource("9_world_manager")
+script = ExtResource("10_world_manager")
 
 [node name="Player" parent="." instance=ExtResource("1_abc123")]
 position = Vector2(200, 200)
@@ -33,3 +34,5 @@ grow_vertical = 2
 [node name="HealthUI" parent="." instance=ExtResource("8_health_ui")]
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="Minimap" parent="." instance=ExtResource("9_minimap")]

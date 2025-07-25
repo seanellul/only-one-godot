@@ -263,6 +263,13 @@ func use_item(item_type: int, item_name: String, effect_message: String):
 		inventory_system.remove_item(item_type, 1)
 		show_usage_notification(item_name, effect_message)
 		
+		# Track item usage for smart sorting
+		var inventory_ui = get_tree().get_first_node_in_group("inventory_ui")
+		if not inventory_ui:
+			inventory_ui = get_node_or_null("../../InventoryUI")
+		if inventory_ui and inventory_ui.has_method("track_item_usage"):
+			inventory_ui.track_item_usage(item_type)
+		
 		# Apply actual effects based on item type
 		apply_item_effect(item_type)
 	else:

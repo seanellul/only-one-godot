@@ -24,6 +24,7 @@ signal damage_dealt(target, damage_amount: int)
 # References
 var player: CharacterBody2D
 var animated_sprite: AnimatedSprite2D
+var combat_feedback: CombatFeedback
 
 func _ready():
 	player = get_parent()
@@ -34,6 +35,10 @@ func _ready():
 		print("Combat: Successfully found AnimatedSprite2D")
 	else:
 		print("Combat: ERROR - Could not find AnimatedSprite2D!")
+	
+	# Initialize combat feedback system
+	combat_feedback = preload("res://scenes/systems/CombatFeedback.gd").new()
+	add_child(combat_feedback)
 	
 	# Connect to health changes for UI updates
 	health_changed.connect(_on_health_changed)
@@ -158,6 +163,10 @@ func take_damage(amount: int, _source = null):
 	
 	print("Combat: Player took ", amount, " damage. Health: ", current_health, "/", max_health)
 	
+	# Combat feedback for player damage
+	if combat_feedback:
+		combat_feedback.player_hit(amount, player.global_position + Vector2(0, -20))
+	
 	# Check for death
 	if current_health <= 0:
 		die()
@@ -179,6 +188,13 @@ func die():
 	is_attacking = false
 	
 	print("Combat: Player died - starting death sequence")
+	
+	# Play death sound effect (safely check if AudioManager exists)
+	var audio_manager = get_node_or_null("/root/AudioManager")
+	if audio_manager and is_instance_valid(audio_manager) and audio_manager.has_method("play_death_sound"):
+		audio_manager.play_death_sound()
+	else:
+		print("CombatSystem: AudioManager not available for death sound (disabled for crash testing)")
 	
 	# Disable player input
 	if player:
@@ -286,3 +302,40 @@ func get_combat_stats() -> Dictionary:
 		"is_dead": is_dead,
 		"can_attack": can_attack()
 	}
+
+# Save/Load functionality for SaveSystem
+func get_save_data() -> Dictionary:
+	"""Get data for saving"""
+	return {
+		"current_health": current_health,
+		"max_health": max_health,
+		"damage": damage
+	}
+
+func load_save_data(data: Dictionary):
+	"""Load data from save"""
+	current_health = data.get("current_health", 100)
+	max_health = data.get("max_health", 100)
+	damage = data.get("damage", 25)
+	is_dead = false # Always alive when loading
+	
+	# Update UI
+	health_changed.emit(current_health, max_health)
+	print("Combat: Loaded save data - Health: ", current_health, "/", max_health)
+
+func set_health(new_health: int):
+	"""Set health (used by SaveSystem)"""
+	current_health = clamp(new_health, 0, max_health)
+	health_changed.emit(current_health, max_health)
+
+func set_max_health(new_max_health: int):
+	"""Set max health (used by SaveSystem)"""
+	max_health = new_max_health
+	if current_health > max_health:
+		current_health = max_health
+	health_changed.emit(current_health, max_health)
+
+func set_damage(new_damage: int):
+	"""Set damage (used by SaveSystem)"""
+	damage = new_damage
+	print("Combat: Damage set to ", damage)

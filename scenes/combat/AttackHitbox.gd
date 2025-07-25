@@ -56,7 +56,7 @@ func setup_hitbox(pos: Vector2, size: Vector2, dmg: int, life: float, attacker: 
 
 func setup_hitbox_relative(pos: Vector2, size: Vector2, dmg: int, life: float, attacker: String):
 	"""Setup the hitbox with all necessary parameters using local position (relative to parent)"""
-	position = pos  # Use local position since this is a child of player
+	position = pos # Use local position since this is a child of player
 	damage = dmg
 	lifetime = life
 	attacker_type = attacker
@@ -188,10 +188,33 @@ func deal_damage_to_target(target):
 		target_hit.emit(target, damage)
 		print("AttackHitbox: Hit ", target.name, " for ", damage, " damage")
 		
+		# Enhanced combat feedback for enemy hits
+		if attacker_type == "player":
+			add_combat_feedback_for_hit(target, damage)
+		
 		# Visual feedback for hit
 		create_hit_effect(target.global_position)
 	else:
 		print("AttackHitbox: Failed to damage ", target.name, " - no damage method found")
+
+func add_combat_feedback_for_hit(target, damage_amount: int):
+	"""Add enhanced combat feedback when player hits enemy"""
+	# Find player's combat feedback system
+	var player = get_tree().get_first_node_in_group("player")
+	if not player:
+		return
+		
+	var combat_system = player.get_node_or_null("CombatSystem")
+	if not combat_system:
+		return
+		
+	var combat_feedback = combat_system.get_node_or_null("CombatFeedback")
+	if combat_feedback:
+		# Determine if critical hit (random 10% chance for now)
+		var is_critical = randf() < 0.1
+		
+		# Create enhanced feedback
+		combat_feedback.enemy_hit(damage_amount, target.global_position, is_critical)
 
 func create_hit_effect(pos: Vector2):
 	"""Create blood splatter effect when hitting a target"""
@@ -207,7 +230,7 @@ func create_blood_splatter(pos: Vector2):
 	for i in range(5):
 		var droplet = ColorRect.new()
 		droplet.size = Vector2(randi_range(8, 16), randi_range(8, 16))
-		droplet.color = Color(0.8, 0.1, 0.1, 0.9)  # Dark red blood
+		droplet.color = Color(0.8, 0.1, 0.1, 0.9) # Dark red blood
 		
 		# Random position around impact point
 		var offset = Vector2(
@@ -220,8 +243,8 @@ func create_blood_splatter(pos: Vector2):
 	# Create main blood splatter
 	var main_splatter = ColorRect.new()
 	main_splatter.size = Vector2(24, 24)
-	main_splatter.color = Color(0.7, 0.0, 0.0, 0.8)  # Darker blood
-	main_splatter.position = -main_splatter.size / 2
+	main_splatter.color = Color(0.7, 0.0, 0.0, 0.8) # Darker blood
+	main_splatter.position = - main_splatter.size / 2
 	blood_container.add_child(main_splatter)
 	
 	# Animate the blood effect
@@ -236,7 +259,7 @@ func create_blood_splatter(pos: Vector2):
 	
 	# Ensure cleanup with timer as backup
 	var cleanup_timer = Timer.new()
-	cleanup_timer.wait_time = 0.6  # Slightly longer than animation
+	cleanup_timer.wait_time = 0.6 # Slightly longer than animation
 	cleanup_timer.one_shot = true
 	cleanup_timer.timeout.connect(blood_container.queue_free)
 	blood_container.add_child(cleanup_timer)

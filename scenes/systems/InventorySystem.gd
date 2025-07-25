@@ -121,3 +121,39 @@ func get_random_item_type(rng: RandomNumberGenerator) -> ItemType:
 			return item_type
 	
 	return ItemType.COIN # Fallback
+
+# Save/Load functionality for SaveSystem
+func get_save_data() -> Dictionary:
+	"""Get inventory data for saving"""
+	var save_data = {}
+	
+	# Convert ItemType enum keys to strings for JSON compatibility
+	for item_type in inventory:
+		var item_name = ItemType.keys()[item_type]
+		save_data[item_name] = inventory[item_type]
+	
+	print("InventorySystem: Saving inventory data: ", save_data)
+	return save_data
+
+func load_save_data(data: Dictionary):
+	"""Load inventory data from save"""
+	if data.is_empty():
+		print("InventorySystem: No inventory data to load")
+		return
+	
+	print("InventorySystem: Loading inventory data: ", data)
+	
+	# Initialize inventory first
+	initialize_inventory()
+	
+	# Load saved data, converting string keys back to ItemType enums
+	for item_name in data:
+		if item_name in ItemType:
+			var item_type = ItemType[item_name]
+			var amount = data[item_name]
+			inventory[item_type] = amount
+			print("InventorySystem: Loaded ", amount, " ", item_name)
+	
+	# Emit update signal to refresh UI
+	inventory_updated.emit()
+	print("InventorySystem: Inventory loaded successfully")

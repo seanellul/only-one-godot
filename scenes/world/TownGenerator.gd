@@ -164,14 +164,27 @@ func create_dynamic_light(light_data: Dictionary):
 
 func create_flickering_light(light: PointLight2D):
 	"""Add subtle flickering effect to torch lights"""
-	var tween = create_tween()
-	tween.set_loops()
+	# Create a timer-based flicker instead of tween to avoid infinite loop issues
+	var timer = Timer.new()
+	timer.wait_time = 0.1
+	timer.autostart = true
+	timer.timeout.connect(_flicker_torch_light.bind(light))
+	light.add_child(timer)
+
+func _flicker_torch_light(light: PointLight2D):
+	"""Handle individual torch flicker"""
+	if not is_instance_valid(light):
+		return
 	
-	# Randomly vary energy between 1.0 and 1.6 for visible effect
-	var flicker_sequence = [1.3, 1.4, 1.2, 1.6, 1.0, 1.3, 1.5, 1.1]
+	# Randomly vary energy between 1.2 and 1.5 for subtle effect
+	var flicker_energy = 1.2 + randf() * 0.3
+	light.energy = flicker_energy
 	
-	for energy_value in flicker_sequence:
-		tween.tween_property(light, "energy", energy_value, 0.1 + randf() * 0.1)
+	# Restart timer with random interval for natural flicker
+	if light.has_node("Timer"):
+		var timer = light.get_node("Timer")
+		timer.wait_time = 0.08 + randf() * 0.04 # 80-120ms intervals
+		timer.start()
 
 func create_organic_town_layout():
 	"""Create a more natural, varied town layout"""
